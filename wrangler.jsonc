@@ -28,6 +28,12 @@
 			"bucket_name": "sanskardeep-media"
 		}
 	],
+	"kv_namespaces": [
+		{
+			"binding": "SESSION",
+			"id": "b1783a6b5b0e4ac78ab23c610b440924"
+		}
+	],
 	"observability": {
 		"enabled": true
 	}
