@@ -6,8 +6,17 @@ import DownloadCard from '../../components/DownloadCard.astro';
 import { getPublishedDownloads } from '../../lib/downloads';
 import { SITE_INFO } from '../../data/portalData';
 
-const db = Astro.locals.runtime?.env?.DB;
-const downloadsList = await getPublishedDownloads(db);
+// @astrojs/cloudflare v14+: bindings are accessed via cloudflare:workers module
+// Astro.locals.runtime.env was removed in Astro v6 / adapter v14
+let downloadsList: Awaited<ReturnType<typeof getPublishedDownloads>> = [];
+try {
+  const { env } = await import('cloudflare:workers');
+  const db = (env as Record<string, unknown>).DB as import('@cloudflare/workers-types').D1Database | undefined;
+  downloadsList = await getPublishedDownloads(db);
+} catch {
+  // Fallback for local dev without cloudflare:workers module
+  downloadsList = await getPublishedDownloads(undefined);
+}
 
 const title = `Free PDF Downloads & Study Material | ${SITE_INFO.name}`;
 const description = `Download Gujarat Board (GSEB) Std 9 to 12 blueprints, model question paper sets, IMP reaction charts, and syllabus copies for free.`;

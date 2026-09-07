@@ -5,7 +5,15 @@ import Layout from '../../../layouts/Layout.astro';
 import { getAllAdminDownloads, createDownloadRecord, toggleDownloadStatus, deleteDownloadRecord } from '../../../lib/downloads';
 import { CLASSES_DATA } from '../../../data/portalData';
 
-const db = Astro.locals.runtime?.env?.DB;
+// @astrojs/cloudflare v14+: bindings accessed via cloudflare:workers module
+let db: import('@cloudflare/workers-types').D1Database | undefined;
+try {
+  const { env } = await import('cloudflare:workers');
+  db = (env as Record<string, unknown>).DB as import('@cloudflare/workers-types').D1Database | undefined;
+} catch {
+  // Local dev fallback — cloudflare:workers not available outside Workers runtime
+  db = undefined;
+}
 
 let formMessage = '';
 let formError = '';
