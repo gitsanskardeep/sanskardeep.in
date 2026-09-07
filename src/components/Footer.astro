@@ -1,0 +1,245 @@
+---
+import { SITE_INFO, NAV_LINKS, CLASSES_DATA } from '../data/portalData';
+---
+
+<footer class="site-footer" id="footer">
+  <div class="container">
+    <div class="footer-top">
+      <!-- Brand & Mission Column with Official Logo -->
+      <div class="footer-brand-col">
+        <a href="/" class="footer-logo-link" aria-label="Sanskar Deep Homepage">
+          <img 
+            src="/images/logo-transparent-266x80.png" 
+            alt="Sanskar Deep Educational Portal Logo" 
+            class="footer-logo-img"
+            width="266"
+            height="80"
+            loading="lazy"
+          />
+        </a>
+
+        <p class="footer-tagline gujarati-text">
+          "{SITE_INFO.taglineGujarati}"
+        </p>
+
+        <p class="footer-desc">
+          {SITE_INFO.description}
+        </p>
+
+        <div class="domain-badge">
+          <span>Official Domain: <strong>{SITE_INFO.domain}</strong></span>
+        </div>
+      </div>
+
+      <!-- Quick Links Column -->
+      <div class="footer-links-col">
+        <h4 class="footer-heading">Quick Navigation</h4>
+        <ul class="footer-links">
+          {NAV_LINKS.map(link => (
+            <li><a href={link.href}>{link.label}</a></li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- Class Links Column -->
+      <div class="footer-links-col">
+        <h4 class="footer-heading">Gujarat Board Classes</h4>
+        <ul class="footer-links">
+          {CLASSES_DATA.map(item => (
+            <li><a href={item.link}>{item.standard}</a></li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- Contact & Support Column -->
+      <div class="footer-links-col">
+        <h4 class="footer-heading">Contact & Information</h4>
+        <div class="contact-items">
+          <div class="contact-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+            <span>{SITE_INFO.contactEmail}</span>
+          </div>
+
+          <div class="contact-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <span>{SITE_INFO.location}</span>
+          </div>
+        </div>
+
+        <div class="support-box">
+          <span class="support-title">Gujarat Board (GSEB) Portal</span>
+          <p class="support-desc">Updated for 2025-26 Academic Session.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Bottom Bar -->
+    <div class="footer-bottom">
+      <p class="copyright-text">
+        &copy; {new Date().getFullYear()} <strong>Sanskar Deep Educational Portal</strong> ({SITE_INFO.domain}). All rights reserved.
+      </p>
+      <p class="disclaimer-text">
+        Disclaimer: Sanskar Deep provides free educational materials, study notes, and blueprints for student learning support.
+      </p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background-color: var(--color-primary-navy);
+    color: #94a3b8;
+    padding: 4.5rem 0 2rem 0;
+    border-top: 3px solid var(--color-accent-gold);
+  }
+
+  .footer-top {
+    display: grid;
+    grid-template-columns: 1.4fr 0.8fr 1fr 1fr;
+    gap: 2.5rem;
+    padding-bottom: 3rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .footer-logo-link {
+    display: inline-block;
+    margin-bottom: 1rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .footer-logo-img {
+    height: 44px;
+    width: auto;
+    max-width: 220px;
+    object-fit: contain;
+    display: block;
+  }
+
+  .footer-tagline {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fcd34d;
+    margin-bottom: 0.85rem;
+  }
+
+  .footer-desc {
+    font-size: 0.875rem;
+    color: #cbd5e1;
+    line-height: 1.5;
+    margin-bottom: 1.25rem;
+  }
+
+  .domain-badge {
+    display: inline-block;
+    background-color: rgba(255, 255, 255, 0.08);
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .footer-heading {
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    letter-spacing: 0.02em;
+  }
+
+  .footer-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .footer-links a {
+    font-size: 0.875rem;
+    color: #cbd5e1;
+    transition: color 0.15s ease;
+  }
+
+  .footer-links a:hover {
+    color: #ffffff;
+  }
+
+  .contact-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .contact-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.875rem;
+    color: #cbd5e1;
+  }
+
+  .contact-item svg {
+    color: var(--color-accent-gold);
+  }
+
+  .support-box {
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 0.85rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .support-title {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  .support-desc {
+    font-size: 0.75rem;
+    color: #94a3b8;
+  }
+
+  .footer-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 2rem;
+    text-align: center;
+  }
+
+  .copyright-text {
+    font-size: 0.85rem;
+    color: #e2e8f0;
+  }
+
+  .disclaimer-text {
+    font-size: 0.75rem;
+    color: #64748b;
+    max-width: 600px;
+  }
+
+  @media (max-width: 1024px) {
+    .footer-top {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .footer-top {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,124 @@
+---
+import { CLASSES_DATA } from '../data/portalData';
+---
+
+<section class="section" id="classes">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Explore Classes • વર્ગ પસંદ કરો</span>
+      <h2 class="section-title">Gujarat Board (GSEB) Std 9 to 12</h2>
+      <p class="section-desc">
+        Select your class to explore syllabus-aligned chapter notes, IMP question banks, paper blueprints, and practice test papers.
+      </p>
+    </div>
+
+    <div class="grid-3">
+      {CLASSES_DATA.map(item => (
+        <div class="card class-card">
+          <div class="class-card-header">
+            <span class="badge badge-accent">{item.badge}</span>
+          </div>
+
+          <h3 class="class-title">{item.standard}</h3>
+          <p class="class-title-gujarati gujarati-text">{item.titleGujarati}</p>
+          <p class="class-desc">{item.description}</p>
+
+          <div class="subjects-wrapper">
+            <span class="subjects-label">Key Subjects:</span>
+            <div class="subject-tags">
+              {item.subjects.map(subj => (
+                <span class="subject-tag">{subj}</span>
+              ))}
+            </div>
+          </div>
+
+          <div class="class-card-footer">
+            <a href={item.link} class="btn btn-sm btn-primary w-full">
+              <span>View Materials & Notes</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .class-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-top: 3px solid var(--color-primary-navy);
+  }
+
+  .class-card-header {
+    margin-bottom: 0.75rem;
+  }
+
+  .class-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--color-primary-navy);
+    margin-bottom: 0.2rem;
+  }
+
+  .class-title-gujarati {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-accent-gold);
+    margin-bottom: 0.85rem;
+  }
+
+  .class-desc {
+    font-size: 0.9rem;
+    color: var(--color-text-medium);
+    margin-bottom: 1.25rem;
+    flex-grow: 1;
+  }
+
+  .subjects-wrapper {
+    margin-bottom: 1.25rem;
+    background-color: var(--color-bg-main);
+    padding: 0.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+  }
+
+  .subjects-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .subject-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .subject-tag {
+    background-color: #ffffff;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-dark);
+    padding: 0.15rem 0.45rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+  }
+
+  .class-card-footer {
+    margin-top: auto;
+  }
+
+  .w-full {
+    width: 100%;
+  }
+</style>

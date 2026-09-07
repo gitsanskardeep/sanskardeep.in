@@ -1,0 +1,22 @@
+---
+export const prerender = true;
+
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import ClassesSection from '../components/ClassesSection.astro';
+import StudyMaterialSection from '../components/StudyMaterialSection.astro';
+import TestsSection from '../components/TestsSection.astro';
+import BlogSection from '../components/BlogSection.astro';
+import DownloadsSection from '../components/DownloadsSection.astro';
+import AboutSection from '../components/AboutSection.astro';
+---
+
+<Layout>
+	<Hero />
+	<ClassesSection />
+	<StudyMaterialSection />
+	<TestsSection />
+	<BlogSection />
+	<DownloadsSection />
+	<AboutSection />
+</Layout>

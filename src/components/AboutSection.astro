@@ -1,0 +1,215 @@
+---
+import { SITE_INFO } from '../data/portalData';
+---
+
+<section class="section section-alt" id="about">
+  <div class="container">
+    <div class="about-card card">
+      <div class="about-grid">
+        <div class="about-content">
+          <span class="section-tag">About Sanskar Deep • અમારા વિશે</span>
+          <h2 class="about-title">Empowering Every Gujarat Board Learner</h2>
+          <p class="about-tagline gujarati-text">
+            "{SITE_INFO.taglineGujarati}"
+          </p>
+
+          <p class="about-text">
+            <strong>SANSKAR DEEP</strong> (sanskardeep.in) is a dedicated educational portal committed to supporting Std 9, 10, 11, and 12 Gujarat Board (GSEB) students, parents, and educators.
+          </p>
+
+          <p class="about-text">
+            Our mission is to make quality academic preparation accessible, structured, and stress-free. Whether you are revising chapter formulas, solving board model papers, analyzing question blueprints, or preparing for entrance exams, Sanskar Deep provides comprehensive guidance every step of the way.
+          </p>
+
+          <div class="audience-pills">
+            <div class="pill">
+              <span class="pill-title">Students</span>
+              <span class="pill-desc">Clear concepts & IMP question banks</span>
+            </div>
+            <div class="pill">
+              <span class="pill-title">Parents</span>
+              <span class="pill-desc">Track study progress & career options</span>
+            </div>
+            <div class="pill">
+              <span class="pill-title">Teachers</span>
+              <span class="pill-desc">Blueprints & ready practice test sets</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="about-sidebar">
+          <div class="mission-box">
+            <!-- Official Emblem Image -->
+            <div class="about-emblem-wrapper">
+              <img 
+                src="/images/logo-emblem-large.png" 
+                alt="Sanskar Deep Official Seal" 
+                class="about-emblem-img"
+                width="200"
+                height="200"
+              />
+            </div>
+
+            <h3 class="mission-title">Core Principles</h3>
+            <ul class="principles-list">
+              <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>100% Free & Open Access to All Students</span>
+              </li>
+              <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Strict Alignment with Latest GSEB Curriculum</span>
+              </li>
+              <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Bilingual Clarity (Gujarati & English Mix)</span>
+              </li>
+              <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Regularly Updated Syllabus & Blueprints</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .about-card {
+    padding: 3rem;
+  }
+
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1.25fr 0.75fr;
+    gap: 3rem;
+    align-items: center;
+  }
+
+  .about-title {
+    font-size: 2rem;
+    color: var(--color-primary-navy);
+    margin-bottom: 0.5rem;
+  }
+
+  .about-tagline {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-accent-gold);
+    margin-bottom: 1.25rem;
+  }
+
+  .about-text {
+    font-size: 1rem;
+    color: var(--color-text-medium);
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+
+  .audience-pills {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .pill {
+    background-color: var(--color-bg-main);
+    border: 1px solid var(--color-border);
+    padding: 0.85rem;
+    border-radius: var(--radius-md);
+  }
+
+  .pill-title {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--color-primary-navy);
+    margin-bottom: 0.2rem;
+  }
+
+  .pill-desc {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    line-height: 1.3;
+  }
+
+  .mission-box {
+    background-color: var(--color-primary-navy);
+    color: #ffffff;
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .about-emblem-wrapper {
+    margin-bottom: 1.25rem;
+    padding: 0.4rem;
+    background-color: #ffffff;
+    border-radius: 50%;
+  }
+
+  .about-emblem-img {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    display: block;
+  }
+
+  .mission-title {
+    color: #ffffff;
+    font-size: 1.25rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    width: 100%;
+    text-align: center;
+  }
+
+  .principles-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    width: 100%;
+  }
+
+  .principles-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    font-size: 0.875rem;
+    color: #cbd5e1;
+  }
+
+  .principles-list svg {
+    color: #4ade80;
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+  }
+
+  @media (max-width: 900px) {
+    .about-grid {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+    .about-card {
+      padding: 1.75rem;
+    }
+    .audience-pills {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

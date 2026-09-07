@@ -1,0 +1,113 @@
+---
+import { BLOG_POSTS } from '../data/portalData';
+---
+
+<section class="section section-alt" id="blog">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Educational Articles • માર્ગદર્શન લેખ</span>
+      <h2 class="section-title">Latest Articles & Exam Guidance</h2>
+      <p class="section-desc">
+        Expert guidance on board exam strategy, paper presentation, stream selection, and time management for GSEB students.
+      </p>
+    </div>
+
+    <div class="grid-3">
+      {BLOG_POSTS.map(post => (
+        <article class="card blog-card">
+          <div class="blog-header">
+            <span class="badge badge-primary">{post.category}</span>
+            <span class="read-time">{post.readTime}</span>
+          </div>
+
+          <h3 class="blog-title">{post.title}</h3>
+          <p class="blog-title-gujarati gujarati-text">{post.titleGujarati}</p>
+
+          <p class="blog-summary">{post.summary}</p>
+
+          <div class="blog-footer">
+            <span class="blog-date">{post.date}</span>
+            <a href="#blog" class="read-more-btn">
+              <span>Read Full Article</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .blog-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .blog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .read-time {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+  }
+
+  .blog-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-primary-navy);
+    margin-bottom: 0.35rem;
+    line-height: 1.35;
+  }
+
+  .blog-title-gujarati {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--color-accent-gold);
+    margin-bottom: 0.75rem;
+  }
+
+  .blog-summary {
+    font-size: 0.9rem;
+    color: var(--color-text-medium);
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+  }
+
+  .blog-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .blog-date {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+  }
+
+  .read-more-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-primary-blue);
+  }
+
+  .read-more-btn:hover {
+    color: var(--color-primary-navy);
+    text-decoration: underline;
+  }
+</style>

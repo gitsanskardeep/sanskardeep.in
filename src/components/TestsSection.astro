@@ -1,0 +1,156 @@
+---
+import { TESTS_DATA } from '../data/portalData';
+---
+
+<section class="section" id="tests">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Practice & Evaluate • ટેસ્ટ શ્રેણી</span>
+      <h2 class="section-title">Tests & Practice Papers</h2>
+      <p class="section-desc">
+        Evaluate your understanding with GSEB pattern unit tests, chapter quizzes, and full 100-mark board model exam papers.
+      </p>
+    </div>
+
+    <div class="grid-2">
+      {TESTS_DATA.map(test => (
+        <div class="card test-card">
+          <div class="test-header">
+            <span class="badge badge-accent">{test.standard}</span>
+            <span class="badge badge-primary">{test.type}</span>
+          </div>
+
+          <h3 class="test-title">{test.title}</h3>
+
+          <div class="test-meta">
+            <div class="meta-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span>Subject: <strong>{test.subject}</strong></span>
+            </div>
+
+            <div class="meta-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>Duration: <strong>{test.duration}</strong></span>
+            </div>
+
+            <div class="meta-item">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="7"></circle>
+                <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+              </svg>
+              <span>Total Marks: <strong>{test.totalMarks}</strong></span>
+            </div>
+          </div>
+
+          <div class="test-actions">
+            <a href="#tests" class="btn btn-sm btn-primary">
+              <span>Start Test / Download Paper</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- Practice Banner -->
+    <div class="test-banner">
+      <div class="banner-content">
+        <h3 class="banner-title">Need Custom Practice Sets for Your School or Tuition?</h3>
+        <p class="banner-text">
+          Access our full archive of unit test papers and online self-evaluation quizzes tailored for Gujarat Board.
+        </p>
+      </div>
+      <a href="#tests" class="btn btn-accent">Explore All Practice Tests</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .test-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-left: 4px solid var(--color-accent-gold);
+  }
+
+  .test-header {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .test-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary-navy);
+    margin-bottom: 1rem;
+    line-height: 1.35;
+  }
+
+  .test-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem;
+    background-color: var(--color-bg-main);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--color-text-medium);
+  }
+
+  .test-actions {
+    margin-top: auto;
+  }
+
+  .test-banner {
+    margin-top: 3rem;
+    background-color: var(--color-primary-navy);
+    color: #ffffff;
+    padding: 2rem 2.5rem;
+    border-radius: var(--radius-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .banner-title {
+    color: #ffffff;
+    font-size: 1.35rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .banner-text {
+    color: #cbd5e1;
+    font-size: 0.95rem;
+  }
+
+  @media (max-width: 768px) {
+    .test-banner {
+      flex-direction: column;
+      text-align: center;
+      padding: 1.5rem;
+    }
+  }
+</style>

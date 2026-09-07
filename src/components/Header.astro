@@ -1,0 +1,312 @@
+---
+import { SITE_INFO, NAV_LINKS } from '../data/portalData';
+---
+
+<!-- Top Announcement Bar -->
+<div class="top-bar">
+  <div class="container top-bar-content">
+    <div class="top-bar-left">
+      <span class="gujarati-badge">ગુજરાત બોર્ડ (GSEB) ધોરણ ૯ થી ૧૨</span>
+      <span class="domain-tag">{SITE_INFO.domain}</span>
+    </div>
+    <div class="top-bar-right">
+      <span class="tagline-text">"{SITE_INFO.tagline}"</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main Sticky Header -->
+<header class="site-header" id="home">
+  <div class="container header-container">
+    <!-- Brand Logo using Official Supplied Logo -->
+    <a href="/" class="brand-logo-link" aria-label="Sanskar Deep Homepage">
+      <img 
+        src="/images/logo-transparent-266x80.png" 
+        alt="Sanskar Deep Educational Portal Logo" 
+        class="header-logo-img"
+        width="266"
+        height="80"
+        loading="eager"
+      />
+    </a>
+
+    <!-- Desktop Navigation -->
+    <nav class="desktop-nav" aria-label="Main Navigation">
+      <ul class="nav-list">
+        {NAV_LINKS.map(link => (
+          <li>
+            <a href={link.href} class="nav-link">{link.label}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <!-- Header Actions / CTA -->
+    <div class="header-actions">
+      <a href="#classes" class="btn btn-sm btn-primary header-cta">Start Learning</a>
+      
+      <!-- Mobile Menu Toggle Button -->
+      <button class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation menu" aria-expanded="false">
+        <svg class="icon-hamburger" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+        <svg class="icon-close hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile Navigation Drawer -->
+  <div class="mobile-nav" id="mobileNav">
+    <div class="container">
+      <div class="mobile-nav-header">
+        <img 
+          src="/images/logo-header-210x70.png" 
+          alt="Sanskar Deep Logo" 
+          class="mobile-logo-img"
+          width="210"
+          height="70"
+        />
+      </div>
+      <ul class="mobile-nav-list">
+        {NAV_LINKS.map(link => (
+          <li>
+            <a href={link.href} class="mobile-nav-link">{link.label}</a>
+          </li>
+        ))}
+      </ul>
+      <div class="mobile-nav-footer">
+        <p class="gujarati-text">સંસ્કાર દીપ એજ્યુકેશનલ પોર્ટલ</p>
+        <a href="#classes" class="btn btn-primary w-full" style="margin-top: 1rem;">Explore All Classes</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<style>
+  /* Top Announcement Bar */
+  .top-bar {
+    background-color: var(--color-primary-navy);
+    color: #cbd5e1;
+    font-size: 0.8rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .top-bar-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .gujarati-badge {
+    background-color: rgba(217, 119, 6, 0.2);
+    color: #fcd34d;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .domain-tag {
+    color: #94a3b8;
+    font-weight: 500;
+  }
+
+  .tagline-text {
+    font-style: italic;
+    color: #e2e8f0;
+    font-weight: 500;
+  }
+
+  /* Sticky Header */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+
+  .header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--header-height);
+  }
+
+  /* Brand Logo Image */
+  .brand-logo-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+
+  .header-logo-img {
+    height: 48px;
+    width: auto;
+    max-width: 220px;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* Desktop Nav */
+  .desktop-nav {
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-list {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    list-style: none;
+  }
+
+  .nav-link {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-text-medium);
+    padding: 0.5rem 0.25rem;
+    transition: color 0.15s ease;
+    letter-spacing: 0.02em;
+  }
+
+  .nav-link:hover {
+    color: var(--color-accent-blue);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  /* Mobile Navigation */
+  .mobile-toggle {
+    display: none;
+    padding: 0.4rem;
+    color: var(--color-primary-navy);
+    border-radius: var(--radius-sm);
+  }
+
+  .mobile-nav {
+    display: none;
+    background-color: #ffffff;
+    border-bottom: 1px solid var(--color-border);
+    padding: 1.25rem 0 1.75rem 0;
+  }
+
+  .mobile-nav-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: center;
+  }
+
+  .mobile-logo-img {
+    height: 42px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .mobile-nav-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .mobile-nav-link {
+    display: block;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-primary-navy);
+    border-radius: var(--radius-sm);
+  }
+
+  .mobile-nav-link:hover {
+    background-color: var(--color-bg-alt);
+  }
+
+  .mobile-nav-footer {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  .w-full {
+    width: 100%;
+  }
+
+  /* Responsive Rules */
+  @media (max-width: 1024px) {
+    .desktop-nav {
+      display: none;
+    }
+    .header-cta {
+      display: none;
+    }
+    .mobile-toggle {
+      display: block;
+    }
+    .top-bar-right {
+      display: none;
+    }
+    .mobile-nav.active {
+      display: block;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .header-logo-img {
+      height: 38px;
+      max-width: 170px;
+    }
+  }
+</style>
+
+<script>
+  // Mobile menu toggle logic
+  const btn = document.getElementById('mobileMenuBtn');
+  const nav = document.getElementById('mobileNav');
+  const iconHamburger = btn?.querySelector('.icon-hamburger');
+  const iconClose = btn?.querySelector('.icon-close');
+
+  btn?.addEventListener('click', () => {
+    const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', (!isExpanded).toString());
+    nav?.classList.toggle('active');
+    iconHamburger?.classList.toggle('hidden');
+    iconClose?.classList.toggle('hidden');
+  });
+
+  const mobileLinks = nav?.querySelectorAll('.mobile-nav-link');
+  mobileLinks?.forEach(link => {
+    link.addEventListener('click', () => {
+      nav?.classList.remove('active');
+      btn?.setAttribute('aria-expanded', 'false');
+      iconHamburger?.classList.remove('hidden');
+      iconClose?.classList.add('hidden');
+    });
+  });
+</script>

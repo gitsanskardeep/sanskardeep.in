@@ -1,0 +1,162 @@
+---
+import { MATERIAL_CATEGORIES } from '../data/portalData';
+---
+
+<section class="section section-alt" id="study-material">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Resources • સાહિત્ય સમૂહ</span>
+      <h2 class="section-title">Comprehensive Study Material</h2>
+      <p class="section-desc">
+        Curated chapter-wise learning assets created specifically for Gujarat Board (GSEB) curriculum for effective exam preparation.
+      </p>
+    </div>
+
+    <div class="grid-3">
+      {MATERIAL_CATEGORIES.map(cat => (
+        <div class="card material-card">
+          <div class="material-header">
+            <div class="icon-box">
+              {cat.icon === 'book-open' && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                </svg>
+              )}
+              {cat.icon === 'award' && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="8" r="7"></circle>
+                  <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+                </svg>
+              )}
+              {cat.icon === 'layout' && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+              )}
+              {cat.icon === 'check-circle' && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+              )}
+              {cat.icon === 'folder' && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+              )}
+              {cat.icon === 'cpu' && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                  <rect x="9" y="9" width="6" height="6"></rect>
+                  <line x1="9" y1="1" x2="9" y2="4"></line>
+                  <line x1="15" y1="1" x2="15" y2="4"></line>
+                  <line x1="9" y1="20" x2="9" y2="23"></line>
+                  <line x1="15" y1="20" x2="15" y2="23"></line>
+                  <line x1="20" y1="9" x2="23" y2="9"></line>
+                  <line x1="20" y1="15" x2="23" y2="15"></line>
+                  <line x1="1" y1="9" x2="4" y2="9"></line>
+                  <line x1="1" y1="15" x2="4" y2="15"></line>
+                </svg>
+              )}
+            </div>
+            {cat.badge && <span class="badge badge-primary">{cat.badge}</span>}
+          </div>
+
+          <h3 class="material-title">{cat.title}</h3>
+          <p class="material-title-gujarati gujarati-text">{cat.titleGujarati}</p>
+          <p class="material-desc">{cat.description}</p>
+
+          <div class="material-footer">
+            <span class="count-tag">{cat.itemCount}+ Documents</span>
+            <a href="#study-material" class="btn-link">
+              <span>Browse Category</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .material-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .material-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+
+  .icon-box {
+    width: 48px;
+    height: 48px;
+    background-color: #eff6ff;
+    color: var(--color-primary-blue);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #bfdbfe;
+  }
+
+  .material-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-primary-navy);
+    margin-bottom: 0.2rem;
+  }
+
+  .material-title-gujarati {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-accent-gold);
+    margin-bottom: 0.75rem;
+  }
+
+  .material-desc {
+    font-size: 0.9rem;
+    color: var(--color-text-medium);
+    margin-bottom: 1.25rem;
+    flex-grow: 1;
+  }
+
+  .material-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .count-tag {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+  }
+
+  .btn-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-primary-blue);
+  }
+
+  .btn-link:hover {
+    color: var(--color-primary-navy);
+    text-decoration: underline;
+  }
+</style>

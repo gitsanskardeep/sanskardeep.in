@@ -1,0 +1,131 @@
+---
+import { DOWNLOADS_DATA } from '../data/portalData';
+---
+
+<section class="section" id="downloads">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Quick Downloads • સીધા ડાઉનલોડ</span>
+      <h2 class="section-title">Free Educational PDF Downloads</h2>
+      <p class="section-desc">
+        One-click PDF downloads for GSEB official syllabus copies, blueprint structures, model question sets, and formula cheat sheets.
+      </p>
+    </div>
+
+    <div class="downloads-list">
+      {DOWNLOADS_DATA.map(item => (
+        <div class="card download-card">
+          <div class="download-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="12" y1="18" x2="12" y2="12"></line>
+              <polyline points="9 15 12 18 15 15"></polyline>
+            </svg>
+          </div>
+
+          <div class="download-info">
+            <div class="download-badges">
+              <span class="badge badge-accent">{item.standard}</span>
+              <span class="badge badge-primary">{item.subject}</span>
+              <span class="file-meta">{item.fileType} • {item.fileSize}</span>
+            </div>
+            <h3 class="download-title">{item.title}</h3>
+          </div>
+
+          <div class="download-action">
+            <span class="downloads-count">{item.downloadCount} downloads</span>
+            <a href="#downloads" class="btn btn-sm btn-primary download-btn">
+              <span>Download PDF</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .downloads-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .download-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .download-icon {
+    width: 52px;
+    height: 52px;
+    background-color: #fee2e2;
+    color: #dc2626;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .download-info {
+    flex-grow: 1;
+  }
+
+  .download-badges {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .file-meta {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+  }
+
+  .download-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-primary-navy);
+  }
+
+  .download-action {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+    flex-shrink: 0;
+  }
+
+  .downloads-count {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .download-card {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .download-action {
+      width: 100%;
+      align-items: stretch;
+    }
+    .download-btn {
+      width: 100%;
+    }
+  }
+</style>
