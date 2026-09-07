@@ -10,7 +10,7 @@ declare namespace App {
 		runtime: {
 			env: {
 				DB: D1Database;
-				R2_BUCKET: R2Bucket;
+				R2_BUCKET?: R2Bucket;
 				SESSION: KVNamespace;
 			};
 		};

@@ -17,12 +17,6 @@
 			"database_id": "8bde0eb3-e106-43d9-9981-4fca9cdc7992"
 		}
 	],
-	"r2_buckets": [
-		{
-			"binding": "R2_BUCKET",
-			"bucket_name": "sanskardeep-media"
-		}
-	],
 	"kv_namespaces": [
 		{
 			"binding": "SESSION",
