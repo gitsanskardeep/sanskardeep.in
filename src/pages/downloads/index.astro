@@ -65,7 +65,13 @@ const description = `Download Gujarat Board (GSEB) Std 9 to 12 blueprints, model
       {/* Downloads Grid */}
       <div class="grid-2" id="downloadsGrid">
         {downloadsList.map(item => (
-          <div class="download-item-wrapper" data-std={item.className?.toLowerCase() || ''} data-title={item.title.toLowerCase()}>
+          <div 
+            class="download-item-wrapper" 
+            data-std={item.className?.toLowerCase() || ''} 
+            data-title={item.title.toLowerCase()}
+            data-sub={item.subjectName?.toLowerCase() || ''}
+            data-cat={item.categoryName?.toLowerCase() || ''}
+          >
             <DownloadCard download={item} variant="standard" />
           </div>
         ))}
@@ -238,9 +244,11 @@ const description = `Download Gujarat Board (GSEB) Std 9 to 12 blueprints, model
     items.forEach((item) => {
       const std = item.getAttribute('data-std') || '';
       const title = item.getAttribute('data-title') || '';
+      const sub = item.getAttribute('data-sub') || '';
+      const cat = item.getAttribute('data-cat') || '';
 
       const matchesFilter = activeFilter === 'all' || std.includes(activeFilter);
-      const matchesQuery = !query || title.includes(query) || std.includes(query);
+      const matchesQuery = !query || title.includes(query) || std.includes(query) || sub.includes(query) || cat.includes(query);
 
       if (matchesFilter && matchesQuery) {
         (item as HTMLElement).style.display = 'block';
