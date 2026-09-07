@@ -89,12 +89,24 @@ export interface DownloadRecord {
   id: number;
   class_id: number | null;
   subject_id: number | null;
+  category_id: number | null;
   title: string;
+  description: string | null;
+  external_url: string;
+  download_url: string | null;
+  thumbnail_url: string | null;
   file_type: string;
-  pdf_r2_key: string;
+  pdf_r2_key: string | null;
   file_size_bytes: number;
+  status: 'draft' | 'published';
+  display_order: number;
   download_count: number;
   created_at: string;
+  updated_at: string;
+  // Joined relational properties for UI display
+  className?: string;
+  subjectName?: string;
+  categoryName?: string;
 }
 
 export interface TestRecord {

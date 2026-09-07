@@ -1,0 +1,430 @@
+---
+export const prerender = false; // Admin SSR route
+
+import Layout from '../../../layouts/Layout.astro';
+import { getAllAdminDownloads, createDownloadRecord, toggleDownloadStatus, deleteDownloadRecord } from '../../../lib/downloads';
+import { CLASSES_DATA } from '../../../data/portalData';
+
+const db = Astro.locals.runtime?.env?.DB;
+
+let formMessage = '';
+let formError = '';
+
+// Handle Admin Form Actions (POST)
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get('_action')?.toString();
+
+    if (action === 'create' && db) {
+      const title = formData.get('title')?.toString().trim();
+      const class_id = parseInt(formData.get('class_id')?.toString() || '0') || null;
+      const category_id = parseInt(formData.get('category_id')?.toString() || '0') || null;
+      const description = formData.get('description')?.toString().trim() || null;
+      const external_url = formData.get('external_url')?.toString().trim();
+      const download_url = formData.get('download_url')?.toString().trim() || null;
+      const thumbnail_url = formData.get('thumbnail_url')?.toString().trim() || null;
+      const status = (formData.get('status')?.toString() === 'draft') ? 'draft' : 'published';
+      const display_order = parseInt(formData.get('display_order')?.toString() || '0') || 0;
+
+      if (!title || !external_url) {
+        formError = 'Title and External URL (Google Drive link) are required.';
+      } else {
+        const ok = await createDownloadRecord(db, {
+          title,
+          class_id,
+          category_id,
+          description,
+          external_url,
+          download_url,
+          thumbnail_url,
+          status,
+          display_order
+        });
+
+        if (ok) {
+          formMessage = `Download record "${title}" successfully created!`;
+        } else {
+          formError = 'Failed to insert download record into D1.';
+        }
+      }
+    } else if (action === 'toggle_status' && db) {
+      const id = parseInt(formData.get('id')?.toString() || '0');
+      const newStatus = formData.get('new_status')?.toString() === 'draft' ? 'draft' : 'published';
+      if (id > 0) {
+        await toggleDownloadStatus(db, id, newStatus);
+        formMessage = `Status updated for item #${id}.`;
+      }
+    } else if (action === 'delete' && db) {
+      const id = parseInt(formData.get('id')?.toString() || '0');
+      if (id > 0) {
+        await deleteDownloadRecord(db, id);
+        formMessage = `Download record #${id} deleted.`;
+      }
+    }
+  } catch (err: any) {
+    formError = err?.message || 'An unexpected error occurred.';
+  }
+}
+
+const adminDownloads = await getAllAdminDownloads(db);
+---
+
+<Layout title="Admin Downloads Manager - Sanskar Deep" description="Manage PDF downloads, Google Drive links, and educational materials.">
+  <div class="admin-page">
+    <div class="container">
+      <!-- Admin Header Bar -->
+      <div class="admin-header">
+        <div>
+          <span class="auth-notice-badge">Admin Dashboard (Authentication Placeholder)</span>
+          <h1 class="admin-title">Downloads & PDF Manager</h1>
+          <p class="admin-sub">Add external document links (Google Drive), manage categories, and set publication statuses.</p>
+        </div>
+        <a href="/downloads" target="_blank" class="btn btn-outline btn-sm">
+          <span>View Public /downloads</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+        </a>
+      </div>
+
+      {formMessage && <div class="alert alert-success">{formMessage}</div>}
+      {formError && <div class="alert alert-error">{formError}</div>}
+
+      <div class="admin-grid">
+        <!-- Add New Download Record Form -->
+        <div class="card admin-form-card">
+          <h2 class="form-title">Add New Educational Download</h2>
+          <p class="form-desc">Provide Google Drive or external URL to publish a PDF resource.</p>
+
+          <form method="POST" class="admin-form">
+            <input type="hidden" name="_action" value="create" />
+
+            <div class="form-group">
+              <label for="title">Title *</label>
+              <input type="text" id="title" name="title" required placeholder="e.g. Std 10 Maths Board Model Paper Set 2026" class="form-control" />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="class_id">Target Class / Standard</label>
+                <select id="class_id" name="class_id" class="form-control">
+                  <option value="">General / All Classes</option>
+                  {CLASSES_DATA.map(c => (
+                    <option value={c.id.replace(/[^0-9]/g, '') || '1'}>{c.standard}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="category_id">Category</label>
+                <select id="category_id" name="category_id" class="form-control">
+                  <option value="4">Board Model Paper Solutions</option>
+                  <option value="1">Chapter Revision Notes</option>
+                  <option value="2">IMP Question Banks</option>
+                  <option value="3">GSEB Blueprints & Weightage</option>
+                  <option value="5">GSEB Textbooks & Digests</option>
+                  <option value="6">Formulas & Quick Charts</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="description">Description</label>
+              <textarea id="description" name="description" rows="3" placeholder="Brief summary of what this PDF document contains..." class="form-control"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="external_url">External Document URL (Google Drive / Cloud Link) *</label>
+              <input type="url" id="external_url" name="external_url" required placeholder="https://drive.google.com/file/d/..." class="form-control" />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="download_url">Direct Download URL (Optional)</label>
+                <input type="url" id="download_url" name="download_url" placeholder="https://..." class="form-control" />
+              </div>
+
+              <div class="form-group">
+                <label for="thumbnail_url">Thumbnail / Icon Image URL (Optional)</label>
+                <input type="url" id="thumbnail_url" name="thumbnail_url" placeholder="https://..." class="form-control" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="status">Publication Status</label>
+                <select id="status" name="status" class="form-control">
+                  <option value="published">Published</option>
+                  <option value="draft">Draft (Hidden)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="display_order">Display Order Index</label>
+                <input type="number" id="display_order" name="display_order" value="1" min="0" class="form-control" />
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full" style="margin-top: 0.5rem;">
+              <span>Save & Publish Download Record</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Downloads List Table -->
+        <div class="card admin-list-card">
+          <h2 class="form-title">Current Download Records ({adminDownloads.length})</h2>
+
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Class / Category</th>
+                  <th>Title</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {adminDownloads.map(item => (
+                  <tr>
+                    <td>
+                      <span class="badge badge-accent">{item.className || 'General'}</span>
+                      <div class="sub-meta">{item.categoryName || 'PDF Document'}</div>
+                    </td>
+                    <td>
+                      <div class="item-title">{item.title}</div>
+                      <a href={item.external_url} target="_blank" rel="noopener noreferrer" class="link-url">{item.external_url}</a>
+                    </td>
+                    <td>
+                      <span class={`status-badge ${item.status === 'published' ? 'status-published' : 'status-draft'}`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="action-buttons">
+                        <form method="POST" style="display:inline;">
+                          <input type="hidden" name="_action" value="toggle_status" />
+                          <input type="hidden" name="id" value={item.id} />
+                          <input type="hidden" name="new_status" value={item.status === 'published' ? 'draft' : 'published'} />
+                          <button type="submit" class="btn btn-sm btn-outline">
+                            {item.status === 'published' ? 'Unpublish' : 'Publish'}
+                          </button>
+                        </form>
+
+                        <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this record?');">
+                          <input type="hidden" name="_action" value="delete" />
+                          <input type="hidden" name="id" value={item.id} />
+                          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .admin-page {
+    padding: 3rem 0;
+    background-color: var(--color-bg-main);
+  }
+
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+  }
+
+  .auth-notice-badge {
+    display: inline-block;
+    background-color: var(--color-gold-light);
+    color: var(--color-gold-dark);
+    padding: 0.25rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
+  }
+
+  .admin-title {
+    font-size: 2rem;
+    color: var(--color-primary-navy);
+  }
+
+  .admin-sub {
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+  }
+
+  .alert {
+    padding: 0.85rem 1.25rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .alert-success {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+  }
+
+  .alert-error {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+  }
+
+  .admin-grid {
+    display: grid;
+    grid-template-columns: 0.95fr 1.05fr;
+    gap: 2rem;
+  }
+
+  .form-title {
+    font-size: 1.25rem;
+    color: var(--color-primary-navy);
+    margin-bottom: 0.35rem;
+  }
+
+  .form-desc {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+  }
+
+  .admin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .form-group label {
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: var(--color-text-medium);
+  }
+
+  .form-control {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background-color: #ffffff;
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: var(--color-primary-blue);
+  }
+
+  /* Table */
+  .table-responsive {
+    overflow-x: auto;
+    margin-top: 1rem;
+  }
+
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .admin-table th, .admin-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .admin-table th {
+    background-color: var(--color-bg-main);
+    color: var(--color-text-muted);
+    font-weight: 700;
+  }
+
+  .item-title {
+    font-weight: 700;
+    color: var(--color-primary-navy);
+  }
+
+  .sub-meta {
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+    margin-top: 0.25rem;
+  }
+
+  .link-url {
+    font-size: 0.72rem;
+    color: var(--color-primary-blue);
+    word-break: break-all;
+  }
+
+  .status-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .status-published {
+    background-color: #dcfce7;
+    color: #15803d;
+  }
+
+  .status-draft {
+    background-color: #f1f5f9;
+    color: #64748b;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .btn-danger {
+    background-color: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+  }
+
+  .btn-danger:hover {
+    background-color: #dc2626;
+    color: #ffffff;
+  }
+
+  .w-full {
+    width: 100%;
+  }
+
+  @media (max-width: 1024px) {
+    .admin-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

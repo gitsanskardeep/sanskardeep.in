@@ -35,17 +35,20 @@ import { DOWNLOADS_DATA } from '../data/portalData';
 
           <div class="download-action">
             <span class="downloads-count">{item.downloadCount} downloads</span>
-            <a href="#downloads" class="btn btn-sm btn-primary download-btn">
-              <span>Download PDF</span>
+            <a href="/downloads" class="btn btn-sm btn-primary download-btn">
+              <span>View PDF Library</span>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
             </a>
           </div>
         </div>
       ))}
+    </div>
+
+    <div class="downloads-cta">
+      <a href="/downloads" class="btn btn-outline">Explore All PDF Downloads & Documents &rarr;</a>
     </div>
   </div>
 </section>
@@ -55,6 +58,7 @@ import { DOWNLOADS_DATA } from '../data/portalData';
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    margin-bottom: 2rem;
   }
 
   .download-card {
@@ -112,6 +116,11 @@ import { DOWNLOADS_DATA } from '../data/portalData';
     font-size: 0.75rem;
     color: var(--color-text-muted);
     font-weight: 600;
+  }
+
+  .downloads-cta {
+    text-align: center;
+    margin-top: 1.5rem;
   }
 
   @media (max-width: 768px) {
