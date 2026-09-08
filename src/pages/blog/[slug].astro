@@ -1,0 +1,392 @@
+---
+export const prerender = false; // Cloudflare dynamic SSR
+
+import Layout from '../../layouts/Layout.astro';
+import { getBlogPostBySlug, getPublishedBlogPosts } from '../../lib/blog';
+import { SITE_INFO } from '../../data/portalData';
+
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect('/blog');
+}
+
+// Cloudflare v14 environment access
+let db: import('@cloudflare/workers-types').D1Database | undefined;
+try {
+  const { env } = await import('cloudflare:workers');
+  db = (env as Record<string, unknown>).DB as import('@cloudflare/workers-types').D1Database | undefined;
+} catch {
+  db = undefined;
+}
+
+const post = await getBlogPostBySlug(db, slug);
+
+if (!post) {
+  return Astro.redirect('/blog');
+}
+
+// Fetch 3 related or recent articles
+const allPosts = await getPublishedBlogPosts(db);
+const relatedPosts = allPosts.filter(p => p.slug !== post.slug).slice(0, 3);
+
+const title = `${post.title_english} | ${SITE_INFO.name}`;
+const description = post.summary || `Read "${post.title_english}" on Sanskar Deep Educational Portal.`;
+
+// Simple markdown-to-html helper for basic headings, bold, bullet points, and paragraphs
+function renderMarkdown(content: string | null): string {
+  if (!content) return '';
+  const lines = content.split('\n');
+  let html = '';
+  let inList = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith('### ')) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<h3>${trimmed.slice(4)}</h3>`;
+    } else if (trimmed.startsWith('## ')) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<h2>${trimmed.slice(3)}</h2>`;
+    } else if (trimmed.startsWith('# ')) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<h1>${trimmed.slice(2)}</h1>`;
+    } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      const itemText = trimmed.slice(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      html += `<li>${itemText}</li>`;
+    } else if (trimmed === '') {
+      if (inList) { html += '</ul>'; inList = false; }
+    } else {
+      if (inList) { html += '</ul>'; inList = false; }
+      const paraText = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      html += `<p>${paraText}</p>`;
+    }
+  }
+
+  if (inList) { html += '</ul>'; }
+  return html;
+}
+
+const renderedContent = renderMarkdown(post.content_markdown);
+---
+
+<Layout title={title} description={description}>
+  {/* Article Header */}
+  <header class="article-hero">
+    <div class="container article-hero-container">
+      <div class="breadcrumb-bar">
+        <a href="/blog" class="breadcrumb-link">&larr; Back to Blog & Articles</a>
+      </div>
+
+      <div class="article-meta-top">
+        {post.category && <span class="badge badge-primary">{post.category}</span>}
+        {post.className && <span class="badge badge-accent">{post.className}</span>}
+        {post.read_time && <span class="meta-time">{post.read_time}</span>}
+      </div>
+
+      <h1 class="article-title">{post.title_english}</h1>
+
+      {post.title_gujarati && (
+        <p class="article-title-gujarati gujarati-text">{post.title_gujarati}</p>
+      )}
+
+      <div class="article-author-row">
+        <span class="author-name">Sanskar Deep Editorial Team</span>
+        <span class="meta-dot">•</span>
+        <span class="publish-date">{post.published_at || 'Recently Published'}</span>
+      </div>
+    </div>
+  </header>
+
+  {/* Main Article Content */}
+  <article class="section article-section">
+    <div class="container article-container">
+      {post.thumbnail_url && (
+        <div class="article-banner">
+          <img src={post.thumbnail_url} alt={post.title_english} class="banner-img" />
+        </div>
+      )}
+
+      {post.summary && (
+        <div class="article-lead card">
+          <p>{post.summary}</p>
+        </div>
+      )}
+
+      <div class="article-prose" set:html={renderedContent}></div>
+
+      {/* CTA Box */}
+      <div class="article-cta-box card">
+        <div class="cta-inner">
+          <h3>Need More GSEB Preparation Resources?</h3>
+          <p>Download chapter blueprints, previous year board model papers, and comprehensive revision notes for Std 9 to 12.</p>
+          <div class="cta-buttons">
+            <a href="/downloads" class="btn btn-primary">Free PDF Downloads &rarr;</a>
+            <a href="/study-material" class="btn btn-outline">Browse Study Material &rarr;</a>
+          </div>
+        </div>
+      </div>
+
+      {/* Related Posts */}
+      {relatedPosts.length > 0 && (
+        <div class="related-posts-section">
+          <h2 class="related-title">Related Guidance Articles</h2>
+          <div class="grid-3">
+            {relatedPosts.map(rel => (
+              <div class="card related-card">
+                <span class="badge badge-primary">{rel.category}</span>
+                <h4 class="related-post-title">
+                  <a href={`/blog/${rel.slug}`}>{rel.title_english}</a>
+                </h4>
+                <p class="related-summary">{rel.summary}</p>
+                <a href={`/blog/${rel.slug}`} class="related-link">Read Article &rarr;</a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .article-hero {
+    background: linear-gradient(180deg, var(--color-primary-navy) 0%, #173859 100%);
+    color: #ffffff;
+    padding: 3rem 0 3.5rem 0;
+    border-bottom: 3px solid var(--color-accent-gold);
+  }
+
+  .article-hero-container {
+    max-width: 820px;
+    margin: 0 auto;
+  }
+
+  .breadcrumb-bar {
+    margin-bottom: 1.5rem;
+  }
+
+  .breadcrumb-link {
+    color: #fcd34d;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .breadcrumb-link:hover {
+    text-decoration: underline;
+  }
+
+  .article-meta-top {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .meta-time {
+    font-size: 0.8rem;
+    color: #cbd5e1;
+    font-weight: 600;
+  }
+
+  .article-title {
+    font-size: 2.35rem;
+    font-weight: 900;
+    color: #ffffff;
+    line-height: 1.25;
+    margin-bottom: 0.75rem;
+  }
+
+  .article-title-gujarati {
+    font-size: 1.2rem;
+    color: #fcd34d;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+  }
+
+  .article-author-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #94a3b8;
+  }
+
+  .author-name {
+    color: #e2e8f0;
+    font-weight: 600;
+  }
+
+  .meta-dot {
+    color: #64748b;
+  }
+
+  .publish-date {
+    color: #cbd5e1;
+  }
+
+  .article-section {
+    padding-top: 2.5rem;
+  }
+
+  .article-container {
+    max-width: 820px;
+    margin: 0 auto;
+  }
+
+  .article-banner {
+    width: 100%;
+    max-height: 400px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .banner-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .article-lead {
+    background-color: #f8fafc;
+    border-left: 4px solid var(--color-primary-navy);
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.6;
+    color: var(--color-text-dark);
+    margin-bottom: 2rem;
+  }
+
+  .article-prose {
+    font-size: 1.025rem;
+    line-height: 1.75;
+    color: var(--color-text-dark);
+  }
+
+  .article-prose h1, 
+  .article-prose h2, 
+  .article-prose h3 {
+    color: var(--color-primary-navy);
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    font-weight: 800;
+  }
+
+  .article-prose h1 { font-size: 1.75rem; }
+  .article-prose h2 { font-size: 1.45rem; }
+  .article-prose h3 { font-size: 1.2rem; }
+
+  .article-prose p {
+    margin-bottom: 1.25rem;
+  }
+
+  .article-prose ul {
+    margin: 1rem 0 1.5rem 1.5rem;
+    list-style-type: disc;
+  }
+
+  .article-prose li {
+    margin-bottom: 0.5rem;
+  }
+
+  .article-cta-box {
+    margin-top: 3rem;
+    background: linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%);
+    border: 1px solid #bfdbfe;
+    text-align: center;
+    padding: 2.25rem 1.5rem;
+  }
+
+  .cta-inner h3 {
+    font-size: 1.35rem;
+    color: var(--color-primary-navy);
+    margin-bottom: 0.5rem;
+  }
+
+  .cta-inner p {
+    font-size: 0.95rem;
+    color: var(--color-text-medium);
+    margin-bottom: 1.5rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .cta-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .related-posts-section {
+    margin-top: 3.5rem;
+    padding-top: 2.5rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .related-title {
+    font-size: 1.5rem;
+    color: var(--color-primary-navy);
+    margin-bottom: 1.5rem;
+  }
+
+  .related-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    height: 100%;
+  }
+
+  .related-post-title {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .related-post-title a {
+    color: var(--color-primary-navy);
+    text-decoration: none;
+  }
+
+  .related-post-title a:hover {
+    color: var(--color-primary-blue);
+  }
+
+  .related-summary {
+    font-size: 0.85rem;
+    color: var(--color-text-medium);
+    line-height: 1.45;
+    flex-grow: 1;
+  }
+
+  .related-link {
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: var(--color-primary-blue);
+    text-decoration: none;
+    margin-top: 0.5rem;
+  }
+
+  .related-link:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .article-title {
+      font-size: 1.75rem;
+    }
+    .article-hero {
+      padding: 2rem 0 2.5rem 0;
+    }
+  }
+</style>

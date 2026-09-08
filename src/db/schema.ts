@@ -94,7 +94,16 @@ export interface BlogPostRecord {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  // Columns added in migration 0003
+  class_id: number | null;
+  category_id: number | null;
+  thumbnail_url: string | null;
+  display_order: number;
+  // Joined relational properties for UI display
+  className?: string;
+  categoryName?: string;
 }
+
 
 export interface DownloadRecord {
   id: number;
