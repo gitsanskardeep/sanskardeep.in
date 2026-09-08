@@ -71,7 +71,7 @@ import { MATERIAL_CATEGORIES } from '../data/portalData';
 
           <div class="material-footer">
             <span class="count-tag">{cat.itemCount}+ Documents</span>
-            <a href="#study-material" class="btn-link">
+            <a href="/study-material" class="btn-link">
               <span>Browse Category</span>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -81,6 +81,10 @@ import { MATERIAL_CATEGORIES } from '../data/portalData';
           </div>
         </div>
       ))}
+    </div>
+
+    <div class="materials-cta">
+      <a href="/study-material" class="btn btn-primary">Explore All Study Materials & Notes &rarr;</a>
     </div>
   </div>
 </section>
@@ -158,5 +162,10 @@ import { MATERIAL_CATEGORIES } from '../data/portalData';
   .btn-link:hover {
     color: var(--color-primary-navy);
     text-decoration: underline;
+  }
+
+  .materials-cta {
+    text-align: center;
+    margin-top: 2.5rem;
   }
 </style>

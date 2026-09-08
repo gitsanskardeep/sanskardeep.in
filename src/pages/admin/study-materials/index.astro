@@ -3,18 +3,18 @@ export const prerender = false; // Admin SSR route
 
 import Layout from '../../../layouts/Layout.astro';
 import { 
-  getAllAdminDownloads, 
-  getDownloadById,
-  createDownloadRecord, 
-  updateDownloadRecord,
-  toggleDownloadStatus, 
-  deleteDownloadRecord,
+  getAllAdminStudyMaterials, 
+  getStudyMaterialById,
+  createStudyMaterial, 
+  updateStudyMaterial,
+  toggleStudyMaterialStatus, 
+  deleteStudyMaterial,
   getClasses,
   getCategories,
   getSubjects,
   getOrCreateSubject
-} from '../../../lib/downloads';
-import type { DownloadRecord } from '../../../db/schema';
+} from '../../../lib/studyMaterials';
+import type { StudyMaterialRecord } from '../../../db/schema';
 import { getAdminSession, SESSION_COOKIE_NAME } from '../../../lib/auth';
 import type { SessionUser } from '../../../lib/auth';
 
@@ -26,7 +26,6 @@ try {
   db = (env as Record<string, unknown>).DB as import('@cloudflare/workers-types').D1Database | undefined;
   sessionKV = (env as Record<string, unknown>).SESSION as import('@cloudflare/workers-types').KVNamespace | undefined;
 } catch {
-  // Local dev fallback — cloudflare:workers not available outside Workers runtime
   db = undefined;
   sessionKV = undefined;
 }
@@ -40,7 +39,7 @@ if (!currentUser && sessionToken && sessionKV) {
 }
 
 if (!currentUser) {
-  return Astro.redirect('/admin/login?err=' + encodeURIComponent('Please sign in to access the Downloads Manager.'));
+  return Astro.redirect('/admin/login?err=' + encodeURIComponent('Please sign in to access the Study Materials Manager.'));
 }
 
 // Handle query params for Post-Redirect-Get messages and edit mode
@@ -57,23 +56,25 @@ if (Astro.request.method === 'POST') {
     const action = formData.get('_action')?.toString();
 
     if (!db) {
-      return Astro.redirect('/admin/downloads?err=' + encodeURIComponent('Database connection is currently unavailable.'));
+      return Astro.redirect('/admin/study-materials?err=' + encodeURIComponent('Database connection is currently unavailable.'));
     }
 
     if (action === 'create') {
-      const title = formData.get('title')?.toString().trim();
+      const title_english = formData.get('title_english')?.toString().trim();
+      const title_gujarati = formData.get('title_gujarati')?.toString().trim() || null;
       const class_id = parseInt(formData.get('class_id')?.toString() || '0', 10) || null;
       const category_id = parseInt(formData.get('category_id')?.toString() || '0', 10) || null;
       const subject_name = formData.get('subject_name')?.toString().trim() || '';
+      const chapter = formData.get('chapter')?.toString().trim() || null;
       const description = formData.get('description')?.toString().trim() || null;
-      const external_url = formData.get('external_url')?.toString().trim();
+      const external_url = formData.get('external_url')?.toString().trim() || null;
       const download_url = formData.get('download_url')?.toString().trim() || null;
       const thumbnail_url = formData.get('thumbnail_url')?.toString().trim() || null;
       const status = (formData.get('status')?.toString() === 'draft') ? 'draft' : 'published';
       const display_order = parseInt(formData.get('display_order')?.toString() || '0', 10) || 0;
 
-      if (!title || !external_url) {
-        return Astro.redirect('/admin/downloads?err=' + encodeURIComponent('Title and External PDF URL are required.'));
+      if (!title_english) {
+        return Astro.redirect('/admin/study-materials?err=' + encodeURIComponent('English Title is required.'));
       }
 
       let subject_id: number | null = null;
@@ -81,11 +82,13 @@ if (Astro.request.method === 'POST') {
         subject_id = await getOrCreateSubject(db, subject_name, class_id);
       }
 
-      const ok = await createDownloadRecord(db, {
-        title,
+      const ok = await createStudyMaterial(db, {
+        title_english,
+        title_gujarati,
         class_id,
         subject_id,
         category_id,
+        chapter,
         description,
         external_url,
         download_url,
@@ -95,26 +98,28 @@ if (Astro.request.method === 'POST') {
       });
 
       if (ok) {
-        return Astro.redirect('/admin/downloads?msg=' + encodeURIComponent(`Download "${title}" was created successfully!`));
+        return Astro.redirect('/admin/study-materials?msg=' + encodeURIComponent(`Study material "${title_english}" was created successfully!`));
       } else {
-        return Astro.redirect('/admin/downloads?err=' + encodeURIComponent('Failed to insert download record into D1.'));
+        return Astro.redirect('/admin/study-materials?err=' + encodeURIComponent('Failed to insert study material record into D1.'));
       }
 
     } else if (action === 'update') {
       const id = parseInt(formData.get('id')?.toString() || '0', 10);
-      const title = formData.get('title')?.toString().trim();
+      const title_english = formData.get('title_english')?.toString().trim();
+      const title_gujarati = formData.get('title_gujarati')?.toString().trim() || null;
       const class_id = parseInt(formData.get('class_id')?.toString() || '0', 10) || null;
       const category_id = parseInt(formData.get('category_id')?.toString() || '0', 10) || null;
       const subject_name = formData.get('subject_name')?.toString().trim() || '';
+      const chapter = formData.get('chapter')?.toString().trim() || null;
       const description = formData.get('description')?.toString().trim() || null;
-      const external_url = formData.get('external_url')?.toString().trim();
+      const external_url = formData.get('external_url')?.toString().trim() || null;
       const download_url = formData.get('download_url')?.toString().trim() || null;
       const thumbnail_url = formData.get('thumbnail_url')?.toString().trim() || null;
       const status = (formData.get('status')?.toString() === 'draft') ? 'draft' : 'published';
       const display_order = parseInt(formData.get('display_order')?.toString() || '0', 10) || 0;
 
-      if (!id || !title || !external_url) {
-        return Astro.redirect('/admin/downloads?err=' + encodeURIComponent('ID, Title, and External PDF URL are required.'));
+      if (!id || !title_english) {
+        return Astro.redirect('/admin/study-materials?err=' + encodeURIComponent('ID and English Title are required.'));
       }
 
       let subject_id: number | null = null;
@@ -122,12 +127,14 @@ if (Astro.request.method === 'POST') {
         subject_id = await getOrCreateSubject(db, subject_name, class_id);
       }
 
-      const ok = await updateDownloadRecord(db, {
+      const ok = await updateStudyMaterial(db, {
         id,
-        title,
+        title_english,
+        title_gujarati,
         class_id,
         subject_id,
         category_id,
+        chapter,
         description,
         external_url,
         download_url,
@@ -137,52 +144,52 @@ if (Astro.request.method === 'POST') {
       });
 
       if (ok) {
-        return Astro.redirect('/admin/downloads?msg=' + encodeURIComponent(`Download #${id} was updated successfully!`));
+        return Astro.redirect('/admin/study-materials?msg=' + encodeURIComponent(`Study material #${id} was updated successfully!`));
       } else {
-        return Astro.redirect('/admin/downloads?err=' + encodeURIComponent('Failed to update download record in D1.'));
+        return Astro.redirect('/admin/study-materials?err=' + encodeURIComponent('Failed to update study material record in D1.'));
       }
 
     } else if (action === 'toggle_status') {
       const id = parseInt(formData.get('id')?.toString() || '0', 10);
       const newStatus = formData.get('new_status')?.toString() === 'draft' ? 'draft' : 'published';
       if (id > 0) {
-        await toggleDownloadStatus(db, id, newStatus);
-        return Astro.redirect('/admin/downloads?msg=' + encodeURIComponent(`Status for #${id} changed to ${newStatus}.`));
+        await toggleStudyMaterialStatus(db, id, newStatus);
+        return Astro.redirect('/admin/study-materials?msg=' + encodeURIComponent(`Status for #${id} changed to ${newStatus}.`));
       }
 
     } else if (action === 'delete') {
       const id = parseInt(formData.get('id')?.toString() || '0', 10);
       if (id > 0) {
-        await deleteDownloadRecord(db, id);
-        return Astro.redirect('/admin/downloads?msg=' + encodeURIComponent(`Download #${id} was deleted.`));
+        await deleteStudyMaterial(db, id);
+        return Astro.redirect('/admin/study-materials?msg=' + encodeURIComponent(`Study material #${id} was deleted.`));
       }
     }
   } catch (err: any) {
-    return Astro.redirect('/admin/downloads?err=' + encodeURIComponent(err?.message || 'An unexpected error occurred.'));
+    return Astro.redirect('/admin/study-materials?err=' + encodeURIComponent(err?.message || 'An unexpected error occurred.'));
   }
 }
 
-// Fetch all downloads, classes, categories, and subjects
-const adminDownloads = await getAllAdminDownloads(db);
+// Fetch all study materials, classes, categories, and subjects
+const adminMaterials = await getAllAdminStudyMaterials(db);
 const classesList = await getClasses(db);
 const categoriesList = await getCategories(db);
 const subjectsList = await getSubjects(db);
 
 // If edit mode is requested, find the record
-let editItem: DownloadRecord | null = null;
+let editItem: StudyMaterialRecord | null = null;
 if (editId && db) {
-  editItem = await getDownloadById(db, editId);
+  editItem = await getStudyMaterialById(db, editId);
 }
 if (!editItem && editId) {
-  editItem = adminDownloads.find(d => d.id === editId) || null;
+  editItem = adminMaterials.find(m => m.id === editId) || null;
 }
 
-const totalCount = adminDownloads.length;
-const publishedCount = adminDownloads.filter(d => d.status === 'published').length;
-const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
+const totalCount = adminMaterials.length;
+const publishedCount = adminMaterials.filter(m => m.status === 'published').length;
+const draftCount = adminMaterials.filter(m => m.status === 'draft').length;
 ---
 
-<Layout title="Admin Downloads Manager - Sanskar Deep" description="Manage PDF downloads, Google Drive links, and educational materials.">
+<Layout title="Admin Study Materials - Sanskar Deep" description="Manage curriculum notes, chapter materials, and educational assets.">
   <div class="admin-page">
     <div class="container">
       <!-- Admin Header Bar -->
@@ -192,20 +199,20 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
             <span class="status-indicator"></span>
             <span>Signed in as <strong>{currentUser.fullName}</strong> ({currentUser.email})</span>
           </div>
-          <h1 class="admin-title">Downloads & PDF Manager</h1>
-          <p class="admin-sub">Add external document links (Google Drive), manage categories, and set publication statuses.</p>
+          <h1 class="admin-title">Study Materials Manager</h1>
+          <p class="admin-sub">Organize chapter notes, reference materials, external links, and GSEB study sets.</p>
         </div>
         <div class="admin-nav-actions">
-          <a href="/downloads" target="_blank" class="btn btn-outline btn-sm">
-            <span>View Public /downloads</span>
+          <a href="/study-material" target="_blank" class="btn btn-outline btn-sm">
+            <span>View Public /study-material</span>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
               <polyline points="15 3 21 3 21 9"></polyline>
               <line x1="10" y1="14" x2="21" y2="3"></line>
             </svg>
           </a>
-          <a href="/admin/study-materials" class="btn btn-outline btn-sm">
-            <span>Study Materials</span>
+          <a href="/admin/downloads" class="btn btn-outline btn-sm">
+            <span>Downloads Manager</span>
           </a>
           <a href="/admin/logout" class="btn btn-outline btn-sm btn-logout" title="Securely Sign Out">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -221,7 +228,7 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
       <!-- Stats Summary -->
       <div class="stats-row">
         <div class="stat-card">
-          <span class="stat-label">Total Documents</span>
+          <span class="stat-label">Total Materials</span>
           <span class="stat-value">{totalCount}</span>
         </div>
         <div class="stat-card stat-published">
@@ -238,17 +245,17 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
       {formError && <div class="alert alert-error">{formError}</div>}
 
       <div class="admin-grid">
-        <!-- Add / Edit Download Record Form -->
+        <!-- Add / Edit Study Material Record Form -->
         <div class="card admin-form-card" id="adminForm">
           <div class="form-header-row">
             <div>
-              <h2 class="form-title">{editItem ? `Edit Download (#${editItem.id})` : 'Add New PDF Resource'}</h2>
+              <h2 class="form-title">{editItem ? `Edit Study Material (#${editItem.id})` : 'Add New Study Material'}</h2>
               <p class="form-desc">
-                {editItem ? 'Update metadata, Google Drive link, or status for this resource.' : 'Provide Google Drive or external URL to publish a PDF resource.'}
+                {editItem ? 'Update details, chapter information, or publication status.' : 'Add study notes, textbook solutions, or resource links.'}
               </p>
             </div>
             {editItem && (
-              <a href="/admin/downloads" class="btn btn-sm btn-outline cancel-btn">
+              <a href="/admin/study-materials" class="btn btn-sm btn-outline cancel-btn">
                 ✕ Cancel Edit
               </a>
             )}
@@ -258,17 +265,31 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
             <input type="hidden" name="_action" value={editItem ? 'update' : 'create'} />
             {editItem && <input type="hidden" name="id" value={editItem.id} />}
 
-            <div class="form-group">
-              <label for="title">Title *</label>
-              <input 
-                type="text" 
-                id="title" 
-                name="title" 
-                required 
-                placeholder="e.g. Std 10 Maths Board Model Paper Set 2026" 
-                value={editItem ? editItem.title : ''} 
-                class="form-control" 
-              />
+            <div class="form-row">
+              <div class="form-group">
+                <label for="title_english">Title (English) *</label>
+                <input 
+                  type="text" 
+                  id="title_english" 
+                  name="title_english" 
+                  required 
+                  placeholder="e.g. Chemical Reactions and Equations - Complete Revision" 
+                  value={editItem ? editItem.title_english : ''} 
+                  class="form-control" 
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="title_gujarati">Title (Gujarati - Optional)</label>
+                <input 
+                  type="text" 
+                  id="title_gujarati" 
+                  name="title_gujarati" 
+                  placeholder="e.g. રાસાયણિક પ્રક્રિયાઓ અને સમીકરણો" 
+                  value={editItem ? (editItem.title_gujarati || '') : ''} 
+                  class="form-control gujarati-text" 
+                />
+              </div>
             </div>
 
             <div class="form-row-3">
@@ -289,7 +310,7 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
                   id="subject_name" 
                   name="subject_name" 
                   list="subjectsListSuggestions" 
-                  placeholder="e.g. Mathematics, Science" 
+                  placeholder="e.g. Science, Mathematics" 
                   value={editItem ? (editItem.subjectName || '') : ''} 
                   class="form-control" 
                 />
@@ -317,11 +338,37 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
                 <label for="category_id">Category</label>
                 <select id="category_id" name="category_id" class="form-control">
                   {categoriesList.map(cat => (
-                    <option value={cat.id} selected={editItem ? editItem.category_id === cat.id : cat.id === 4}>
+                    <option value={cat.id} selected={editItem ? editItem.category_id === cat.id : cat.id === 1}>
                       {cat.title_english}
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="chapter">Chapter / Topic</label>
+                <input 
+                  type="text" 
+                  id="chapter" 
+                  name="chapter" 
+                  placeholder="e.g. Chapter 1: Chemical Reactions" 
+                  value={editItem ? (editItem.chapter || '') : ''} 
+                  class="form-control" 
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="display_order">Display Order Index</label>
+                <input 
+                  type="number" 
+                  id="display_order" 
+                  name="display_order" 
+                  value={editItem ? editItem.display_order : 1} 
+                  min="0" 
+                  class="form-control" 
+                />
               </div>
             </div>
 
@@ -331,20 +378,19 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
                 id="description" 
                 name="description" 
                 rows="3" 
-                placeholder="Brief summary of what this PDF document contains..." 
+                placeholder="Comprehensive summary of concepts, GSEB blueprint alignment, or key takeaways..." 
                 class="form-control"
               >{editItem ? (editItem.description || '') : ''}</textarea>
             </div>
 
             <div class="form-group">
-              <label for="external_url">External Document URL (Google Drive / Cloud Link) *</label>
+              <label for="external_url">External Resource URL (Google Drive / PDF / Doc Link)</label>
               <input 
                 type="url" 
                 id="external_url" 
                 name="external_url" 
-                required 
                 placeholder="https://drive.google.com/file/d/..." 
-                value={editItem ? editItem.external_url : ''} 
+                value={editItem ? (editItem.external_url || '') : ''} 
                 class="form-control" 
               />
             </div>
@@ -363,7 +409,7 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
               </div>
 
               <div class="form-group">
-                <label for="thumbnail_url">Thumbnail / Icon Image URL (Optional)</label>
+                <label for="thumbnail_url">Thumbnail Image URL (Optional)</label>
                 <input 
                   type="url" 
                   id="thumbnail_url" 
@@ -383,26 +429,14 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
                   <option value="draft" selected={editItem ? editItem.status === 'draft' : false}>Draft (Hidden)</option>
                 </select>
               </div>
-
-              <div class="form-group">
-                <label for="display_order">Display Order Index</label>
-                <input 
-                  type="number" 
-                  id="display_order" 
-                  name="display_order" 
-                  value={editItem ? editItem.display_order : 1} 
-                  min="0" 
-                  class="form-control" 
-                />
-              </div>
             </div>
 
             <div class="form-actions-bar">
               <button type="submit" class="btn btn-primary w-full">
-                <span>{editItem ? 'Update Download Record' : 'Save & Publish Download Record'}</span>
+                <span>{editItem ? 'Update Study Material' : 'Save & Publish Study Material'}</span>
               </button>
               {editItem && (
-                <a href="/admin/downloads" class="btn btn-outline">
+                <a href="/admin/study-materials" class="btn btn-outline">
                   Cancel
                 </a>
               )}
@@ -410,10 +444,10 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
           </form>
         </div>
 
-        <!-- Downloads List Table -->
+        <!-- Materials List Table -->
         <div class="card admin-list-card">
           <div class="list-header">
-            <h2 class="form-title">Current Download Records ({totalCount})</h2>
+            <h2 class="form-title">Current Study Materials ({totalCount})</h2>
             <span class="list-hint">Click Edit to modify or toggle status instantly.</span>
           </div>
 
@@ -422,14 +456,14 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
               <thead>
                 <tr>
                   <th style="width: 60px;">#</th>
-                  <th>Class & Category</th>
-                  <th>Title & Links</th>
+                  <th>Class & Subject</th>
+                  <th>Title & Chapter</th>
                   <th>Status</th>
                   <th style="text-align: right;">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {adminDownloads.map(item => (
+                {adminMaterials.map(item => (
                   <tr class={editItem && editItem.id === item.id ? 'row-editing' : ''}>
                     <td class="order-cell">
                       <span class="id-badge">#{item.id}</span>
@@ -438,18 +472,21 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
                     <td>
                       <span class="badge badge-accent">{item.className || 'General'}</span>
                       {item.subjectName && <span class="badge badge-primary sub-badge">{item.subjectName}</span>}
-                      <div class="sub-meta">{item.categoryName || 'PDF Document'}</div>
+                      <div class="sub-meta">{item.categoryName || 'Material'}</div>
                     </td>
                     <td>
-                      <div class="item-title">{item.title}</div>
-                      <a href={item.external_url} target="_blank" rel="noopener noreferrer" class="link-url">
-                        <span>Open Link</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                          <polyline points="15 3 21 3 21 9"></polyline>
-                          <line x1="10" y1="14" x2="21" y2="3"></line>
-                        </svg>
-                      </a>
+                      <div class="item-title">{item.title_english}</div>
+                      {item.chapter && <div class="item-chapter">{item.chapter}</div>}
+                      {item.external_url && (
+                        <a href={item.external_url} target="_blank" rel="noopener noreferrer" class="link-url">
+                          <span>Open Resource</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                          </svg>
+                        </a>
+                      )}
                     </td>
                     <td>
                       <span class={`status-badge ${item.status === 'published' ? 'status-published' : 'status-draft'}`}>
@@ -458,7 +495,7 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
                     </td>
                     <td>
                       <div class="action-buttons">
-                        <a href={`/admin/downloads?edit=${item.id}#adminForm`} class="btn btn-sm btn-outline action-edit">
+                        <a href={`/admin/study-materials?edit=${item.id}#adminForm`} class="btn btn-sm btn-outline action-edit">
                           Edit
                         </a>
 
@@ -471,10 +508,10 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
                           </button>
                         </form>
 
-                        <form method="POST" style="display:inline;" onsubmit="return confirm(`Delete download #${item.id} (${item.title})?`);">
+                        <form method="POST" style="display:inline;" onsubmit="return confirm(`Delete study material #${item.id} (${item.title_english})?`);">
                           <input type="hidden" name="_action" value="delete" />
                           <input type="hidden" name="id" value={item.id} />
-                          <button type="submit" class="btn btn-sm btn-danger" title="Permanently delete this download">
+                          <button type="submit" class="btn btn-sm btn-danger" title="Permanently delete this material">
                             Delete
                           </button>
                         </form>
@@ -486,10 +523,10 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
             </table>
           </div>
 
-          {adminDownloads.length === 0 && (
-            <div class="empty-downloads">
-              <p>No download records found in database.</p>
-              <p class="empty-sub">Use the form to add the first PDF resource.</p>
+          {adminMaterials.length === 0 && (
+            <div class="empty-materials">
+              <p>No study materials found in database.</p>
+              <p class="empty-sub">Use the form to add the first study material record.</p>
             </div>
           )}
         </div>
@@ -770,6 +807,16 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
     margin-bottom: 0.25rem;
   }
 
+  .item-chapter {
+    font-size: 0.75rem;
+    color: #92400e;
+    background-color: #fef3c7;
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.25rem;
+  }
+
   .sub-meta {
     font-size: 0.72rem;
     color: var(--color-text-muted);
@@ -815,58 +862,47 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
 
   .action-buttons {
     display: flex;
-    gap: 0.4rem;
     justify-content: flex-end;
-    align-items: center;
-  }
-
-  .action-edit {
-    color: var(--color-primary-navy);
-    border-color: var(--color-border);
-  }
-
-  .action-edit:hover {
-    background-color: var(--color-primary-navy);
-    color: #ffffff;
+    gap: 0.4rem;
   }
 
   .btn-danger {
-    background-color: #fee2e2;
+    background-color: #ffffff;
     color: #dc2626;
-    border: 1px solid #fca5a5;
+    border-color: #fca5a5;
   }
 
   .btn-danger:hover {
-    background-color: #dc2626;
-    color: #ffffff;
+    background-color: #fee2e2;
   }
 
-  .empty-downloads {
+  .empty-materials {
     text-align: center;
-    padding: 3rem 1rem;
+    padding: 2.5rem 1rem;
     color: var(--color-text-muted);
   }
 
   .empty-sub {
-    font-size: 0.85rem;
-    margin-top: 0.35rem;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
   }
 
-  .w-full {
-    width: 100%;
-  }
-
-  @media (max-width: 1100px) {
+  @media (max-width: 1024px) {
     .admin-grid {
       grid-template-columns: 1fr;
     }
+  }
 
-    .form-row-3 {
+  @media (max-width: 640px) {
+    .form-row, .form-row-3 {
       grid-template-columns: 1fr;
     }
-
     .stats-row {
       grid-template-columns: 1fr;
+    }
+    .admin-header {
+      flex-direction: column;
+      align-items: stretch;
     }
   }
 </style>

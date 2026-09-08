@@ -67,7 +67,18 @@ export interface StudyMaterialRecord {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  // Columns added in migration 0002
+  external_url: string | null;
+  download_url: string | null;
+  thumbnail_url: string | null;
+  display_order: number;
+  chapter: string | null;
+  // Joined relational properties for UI display
+  className?: string;
+  subjectName?: string;
+  categoryName?: string;
 }
+
 
 export interface BlogPostRecord {
   id: number;
