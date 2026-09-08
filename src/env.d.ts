@@ -16,5 +16,6 @@ declare namespace App {
 		runtime: {
 			cfContext: import('@cloudflare/workers-types').ExecutionContext;
 		};
+		user?: import('./lib/auth').SessionUser;
 	}
 }

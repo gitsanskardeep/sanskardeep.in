@@ -1,0 +1,299 @@
+---
+export const prerender = false; // Admin SSR route
+
+import Layout from '../../layouts/Layout.astro';
+import { 
+  verifyAdminCredentials, 
+  createAdminSession, 
+  countActiveAdmins, 
+  getAdminSession,
+  SESSION_COOKIE_NAME, 
+  SESSION_TTL_SECONDS 
+} from '../../lib/auth';
+
+// Cloudflare v14 Workers environment bindings
+let db: import('@cloudflare/workers-types').D1Database | undefined;
+let sessionKV: import('@cloudflare/workers-types').KVNamespace | undefined;
+try {
+  const { env } = await import('cloudflare:workers');
+  db = (env as Record<string, unknown>).DB as import('@cloudflare/workers-types').D1Database | undefined;
+  sessionKV = (env as Record<string, unknown>).SESSION as import('@cloudflare/workers-types').KVNamespace | undefined;
+} catch {
+  db = undefined;
+  sessionKV = undefined;
+}
+
+// If user already has an active session, redirect to downloads dashboard
+const existingSessionToken = Astro.cookies.get(SESSION_COOKIE_NAME)?.value;
+if (existingSessionToken && sessionKV) {
+  const activeUser = await getAdminSession(sessionKV, existingSessionToken);
+  if (activeUser) {
+    return Astro.redirect('/admin/downloads');
+  }
+}
+
+const url = new URL(Astro.request.url);
+let formMessage = url.searchParams.get('msg') || '';
+let formError = url.searchParams.get('err') || '';
+let emailInput = '';
+
+// Check if any admin exists in the database
+let noAdminsExist = false;
+if (db) {
+  const adminCount = await countActiveAdmins(db);
+  if (adminCount === 0) {
+    noAdminsExist = true;
+  }
+}
+
+// Handle Login Submission (POST)
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const email = formData.get('email')?.toString().trim() || '';
+    const password = formData.get('password')?.toString() || '';
+    emailInput = email;
+
+    if (!email || !password) {
+      formError = 'Please enter both your email address and password.';
+    } else if (!db || !sessionKV) {
+      formError = 'Database or Session service is temporarily unreachable.';
+    } else {
+      const admin = await verifyAdminCredentials(db, email, password);
+
+      if (!admin) {
+        formError = 'Invalid email address or password. Please verify your credentials.';
+      } else {
+        // Create server-side session in Cloudflare KV
+        const sessionToken = await createAdminSession(sessionKV, admin);
+
+        // Set secure HTTP-only cookie
+        Astro.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
+          path: '/',
+          httpOnly: true,
+          secure: import.meta.env.PROD,
+          sameSite: 'lax',
+          maxAge: SESSION_TTL_SECONDS
+        });
+
+        return Astro.redirect('/admin/downloads?msg=' + encodeURIComponent(`Welcome back, ${admin.full_name}!`));
+      }
+    }
+  } catch (err: any) {
+    console.error('Login error:', err);
+    formError = err?.message || 'An unexpected error occurred during sign in.';
+  }
+}
+---
+
+<Layout title="Admin Login | Sanskar Deep Educational Portal" description="Secure login portal for Sanskar Deep educators and administrators.">
+  <div class="login-wrapper">
+    <div class="login-card card">
+      <div class="login-header">
+        <img src="/images/logo-emblem-large.png" alt="Sanskar Deep Emblem" class="login-emblem" />
+        <h1 class="login-title">Admin Portal</h1>
+        <p class="login-subtitle">Sanskar Deep Educational Management</p>
+      </div>
+
+      {noAdminsExist && (
+        <div class="alert alert-warning">
+          <strong>Initial Setup Needed:</strong> No administrator accounts currently exist in the database.
+          <div style="margin-top: 0.5rem;">
+            <a href="/admin/setup" class="btn btn-sm btn-accent w-full" style="display: block; text-align: center;">
+              Create First Admin Account
+            </a>
+          </div>
+        </div>
+      )}
+
+      {formMessage && <div class="alert alert-success">{formMessage}</div>}
+      {formError && <div class="alert alert-error">{formError}</div>}
+
+      <form method="POST" class="login-form">
+        <div class="form-group">
+          <label for="email">Admin Email Address</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            required 
+            autocomplete="email" 
+            autofocus 
+            placeholder="admin@sanskardeep.in" 
+            value={emailInput} 
+            class="form-control" 
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            required 
+            autocomplete="current-password" 
+            placeholder="••••••••••••" 
+            class="form-control" 
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full login-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span>Secure Sign In</span>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <a href="/" class="back-link">
+          ← Back to Public Website
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .login-wrapper {
+    min-height: calc(100vh - 280px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.25rem;
+    background-color: var(--color-bg-main);
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 440px;
+    padding: 2.5rem;
+    background-color: #ffffff;
+    border: 1px solid var(--color-border);
+    border-top: 4px solid var(--color-primary-navy);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .login-emblem {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    margin: 0 auto 0.75rem auto;
+    display: block;
+  }
+
+  .login-title {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: var(--color-primary-navy);
+    letter-spacing: -0.01em;
+    margin-bottom: 0.25rem;
+  }
+
+  .login-subtitle {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+
+  .alert {
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.25rem;
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+
+  .alert-warning {
+    background-color: #fefce8;
+    color: #854d0e;
+    border: 1px solid #fef08a;
+  }
+
+  .alert-success {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+  }
+
+  .alert-error {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+  }
+
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .form-group label {
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: var(--color-text-dark);
+  }
+
+  .form-control {
+    padding: 0.75rem 0.85rem;
+    font-size: 0.925rem;
+    font-family: inherit;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background-color: #f8fafc;
+    transition: all 0.15s ease;
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: var(--color-primary-blue);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+
+  .login-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.85rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-top: 0.5rem;
+  }
+
+  .w-full {
+    width: 100%;
+  }
+
+  .login-footer {
+    text-align: center;
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .back-link {
+    font-size: 0.825rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .back-link:hover {
+    color: var(--color-primary-navy);
+  }
+</style>

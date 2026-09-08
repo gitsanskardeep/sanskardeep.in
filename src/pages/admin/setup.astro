@@ -1,0 +1,313 @@
+---
+export const prerender = false; // Admin SSR route
+
+import Layout from '../../layouts/Layout.astro';
+import { 
+  countActiveAdmins, 
+  createFirstAdmin, 
+  createAdminSession, 
+  SESSION_COOKIE_NAME, 
+  SESSION_TTL_SECONDS 
+} from '../../lib/auth';
+
+// Cloudflare v14 Workers environment bindings
+let db: import('@cloudflare/workers-types').D1Database | undefined;
+let sessionKV: import('@cloudflare/workers-types').KVNamespace | undefined;
+try {
+  const { env } = await import('cloudflare:workers');
+  db = (env as Record<string, unknown>).DB as import('@cloudflare/workers-types').D1Database | undefined;
+  sessionKV = (env as Record<string, unknown>).SESSION as import('@cloudflare/workers-types').KVNamespace | undefined;
+} catch {
+  db = undefined;
+  sessionKV = undefined;
+}
+
+// Safety check: if an admin already exists, lock this page immediately
+if (db) {
+  const adminCount = await countActiveAdmins(db);
+  if (adminCount > 0) {
+    return Astro.redirect('/admin/login?err=' + encodeURIComponent('Setup is locked: An administrator account already exists.'));
+  }
+}
+
+let formError = '';
+let fullNameInput = '';
+let emailInput = '';
+
+// Handle Setup Form Submission (POST)
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const fullName = formData.get('fullName')?.toString().trim() || '';
+    const email = formData.get('email')?.toString().trim() || '';
+    const password = formData.get('password')?.toString() || '';
+    const confirmPassword = formData.get('confirmPassword')?.toString() || '';
+
+    fullNameInput = fullName;
+    emailInput = email;
+
+    if (!fullName || !email || !password) {
+      formError = 'All fields are required.';
+    } else if (password.length < 8) {
+      formError = 'Password must be at least 8 characters long.';
+    } else if (password !== confirmPassword) {
+      formError = 'Passwords do not match. Please re-enter carefully.';
+    } else if (!db || !sessionKV) {
+      formError = 'Cloudflare D1 or KV database service is temporarily unreachable.';
+    } else {
+      const result = await createFirstAdmin(db, {
+        fullName,
+        email,
+        password
+      });
+
+      if (!result.success || !result.admin) {
+        formError = result.error || 'Failed to create admin account.';
+      } else {
+        // Create server-side session in Cloudflare KV
+        const sessionToken = await createAdminSession(sessionKV, result.admin);
+
+        // Set secure HTTP-only cookie
+        Astro.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
+          path: '/',
+          httpOnly: true,
+          secure: import.meta.env.PROD,
+          sameSite: 'lax',
+          maxAge: SESSION_TTL_SECONDS
+        });
+
+        return Astro.redirect('/admin/downloads?msg=' + encodeURIComponent('Primary administrator account created successfully! Welcome to Sanskar Deep.'));
+      }
+    }
+  } catch (err: any) {
+    console.error('Setup error:', err);
+    formError = err?.message || 'An unexpected error occurred during setup.';
+  }
+}
+---
+
+<Layout title="First-Time Admin Setup | Sanskar Deep" description="Initial administrator configuration for the Sanskar Deep portal.">
+  <div class="setup-wrapper">
+    <div class="setup-card card">
+      <div class="setup-header">
+        <img src="/images/logo-emblem-large.png" alt="Sanskar Deep Emblem" class="setup-emblem" />
+        <span class="setup-badge">First-Time Portal Setup</span>
+        <h1 class="setup-title">Create Primary Admin</h1>
+        <p class="setup-subtitle">Set up the initial superadministrator account for Sanskar Deep.</p>
+      </div>
+
+      <div class="alert alert-info">
+        🔒 <strong>Secure Initial Configuration:</strong> This setup page is only available once when no admin account exists. Once created, it is permanently locked.
+      </div>
+
+      {formError && <div class="alert alert-error">{formError}</div>}
+
+      <form method="POST" class="setup-form">
+        <div class="form-group">
+          <label for="fullName">Full Name *</label>
+          <input 
+            type="text" 
+            id="fullName" 
+            name="fullName" 
+            required 
+            placeholder="e.g. Hitesh Patel" 
+            value={fullNameInput} 
+            class="form-control" 
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Admin Email Address *</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            required 
+            placeholder="admin@sanskardeep.in" 
+            value={emailInput} 
+            class="form-control" 
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password * (minimum 8 characters)</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            required 
+            minlength="8" 
+            placeholder="Create a strong password" 
+            class="form-control" 
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password *</label>
+          <input 
+            type="password" 
+            id="confirmPassword" 
+            name="confirmPassword" 
+            required 
+            minlength="8" 
+            placeholder="Re-enter password" 
+            class="form-control" 
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full setup-btn">
+          <span>Create Admin Account & Launch Dashboard</span>
+        </button>
+      </form>
+
+      <div class="setup-footer">
+        <a href="/admin/login" class="back-link">
+          Already have an account? Go to Login
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .setup-wrapper {
+    min-height: calc(100vh - 280px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.25rem;
+    background-color: var(--color-bg-main);
+  }
+
+  .setup-card {
+    width: 100%;
+    max-width: 480px;
+    padding: 2.5rem;
+    background-color: #ffffff;
+    border: 1px solid var(--color-border);
+    border-top: 4px solid var(--color-accent-gold);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .setup-header {
+    text-align: center;
+    margin-bottom: 1.75rem;
+  }
+
+  .setup-emblem {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    margin: 0 auto 0.75rem auto;
+    display: block;
+  }
+
+  .setup-badge {
+    display: inline-block;
+    background-color: #fef3c7;
+    color: #92400e;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
+  }
+
+  .setup-title {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: var(--color-primary-navy);
+    letter-spacing: -0.01em;
+    margin-bottom: 0.25rem;
+  }
+
+  .setup-subtitle {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+
+  .alert {
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.25rem;
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+
+  .alert-info {
+    background-color: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+  }
+
+  .alert-error {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+  }
+
+  .setup-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .form-group label {
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: var(--color-text-dark);
+  }
+
+  .form-control {
+    padding: 0.7rem 0.85rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background-color: #f8fafc;
+    transition: all 0.15s ease;
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: var(--color-primary-blue);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+
+  .setup-btn {
+    padding: 0.85rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-top: 0.5rem;
+  }
+
+  .w-full {
+    width: 100%;
+  }
+
+  .setup-footer {
+    text-align: center;
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .back-link {
+    font-size: 0.825rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .back-link:hover {
+    color: var(--color-primary-navy);
+  }
+</style>

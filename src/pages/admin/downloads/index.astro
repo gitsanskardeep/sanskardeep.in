@@ -15,15 +15,32 @@ import {
   getOrCreateSubject
 } from '../../../lib/downloads';
 import type { DownloadRecord } from '../../../db/schema';
+import { getAdminSession, SESSION_COOKIE_NAME } from '../../../lib/auth';
+import type { SessionUser } from '../../../lib/auth';
 
 // @astrojs/cloudflare v14+: bindings accessed via cloudflare:workers module
 let db: import('@cloudflare/workers-types').D1Database | undefined;
+let sessionKV: import('@cloudflare/workers-types').KVNamespace | undefined;
 try {
   const { env } = await import('cloudflare:workers');
   db = (env as Record<string, unknown>).DB as import('@cloudflare/workers-types').D1Database | undefined;
+  sessionKV = (env as Record<string, unknown>).SESSION as import('@cloudflare/workers-types').KVNamespace | undefined;
 } catch {
   // Local dev fallback — cloudflare:workers not available outside Workers runtime
   db = undefined;
+  sessionKV = undefined;
+}
+
+// Session verification (defense in depth alongside middleware)
+const sessionToken = Astro.cookies.get(SESSION_COOKIE_NAME)?.value;
+let currentUser: SessionUser | null = Astro.locals.user || null;
+
+if (!currentUser && sessionToken && sessionKV) {
+  currentUser = await getAdminSession(sessionKV, sessionToken);
+}
+
+if (!currentUser) {
+  return Astro.redirect('/admin/login?err=' + encodeURIComponent('Please sign in to access the Downloads Manager.'));
 }
 
 // Handle query params for Post-Redirect-Get messages and edit mode
@@ -171,18 +188,31 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
       <!-- Admin Header Bar -->
       <div class="admin-header">
         <div>
-          <span class="auth-notice-badge">Admin Dashboard (Authentication Placeholder)</span>
+          <div class="user-meta-badge">
+            <span class="status-indicator"></span>
+            <span>Signed in as <strong>{currentUser.fullName}</strong> ({currentUser.email})</span>
+          </div>
           <h1 class="admin-title">Downloads & PDF Manager</h1>
           <p class="admin-sub">Add external document links (Google Drive), manage categories, and set publication statuses.</p>
         </div>
-        <a href="/downloads" target="_blank" class="btn btn-outline btn-sm">
-          <span>View Public /downloads</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-            <polyline points="15 3 21 3 21 9"></polyline>
-            <line x1="10" y1="14" x2="21" y2="3"></line>
-          </svg>
-        </a>
+        <div class="admin-nav-actions">
+          <a href="/downloads" target="_blank" class="btn btn-outline btn-sm">
+            <span>View Public /downloads</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+          </a>
+          <a href="/admin/logout" class="btn btn-outline btn-sm btn-logout" title="Securely Sign Out">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Sign Out</span>
+          </a>
+        </div>
       </div>
 
       <!-- Stats Summary -->
@@ -480,15 +510,47 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
     flex-wrap: wrap;
   }
 
-  .auth-notice-badge {
-    display: inline-block;
-    background-color: var(--color-gold-light);
-    color: var(--color-gold-dark);
-    padding: 0.25rem 0.65rem;
-    font-size: 0.75rem;
-    font-weight: 700;
+  .user-meta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #f1f5f9;
+    color: var(--color-text-medium);
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
     border-radius: var(--radius-sm);
     margin-bottom: 0.5rem;
+    border: 1px solid var(--color-border);
+  }
+
+  .status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #22c55e;
+    display: inline-block;
+  }
+
+  .admin-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .btn-logout {
+    color: #dc2626;
+    border-color: #fca5a5;
+    background-color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .btn-logout:hover {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border-color: #f87171;
   }
 
   .admin-title {
