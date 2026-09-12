@@ -22,11 +22,34 @@ const articleUrl = `/blog/${post.slug}`;
 
   {/* Main Card Content */}
   <div class="card-body">
-    {post.thumbnail_url && (
-      <div class="thumbnail-wrapper">
-        <img src={post.thumbnail_url} alt={post.title_english} class="thumbnail-img" loading="lazy" />
-      </div>
-    )}
+    <div class="thumbnail-wrapper">
+      {post.thumbnail_url ? (
+        <>
+          <img
+            src={post.thumbnail_url}
+            alt={post.title_english}
+            class="thumbnail-img"
+            loading="lazy"
+            onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
+          />
+          <div class="thumbnail-placeholder" style="display: none;">
+            <svg class="placeholder-icon" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            <span class="placeholder-text">{post.category || 'Sanskar Deep'}</span>
+          </div>
+        </>
+      ) : (
+        <div class="thumbnail-placeholder">
+          <svg class="placeholder-icon" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          <span class="placeholder-text">{post.category || 'Sanskar Deep'}</span>
+        </div>
+      )}
+    </div>
 
     <div class="details-wrapper">
       <h3 class="blog-card-title">
@@ -111,6 +134,35 @@ const articleUrl = `/blog/${post.slug}`;
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  .thumbnail-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+    color: #f8fafc;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .placeholder-icon {
+    width: 36px;
+    height: 36px;
+    color: var(--color-accent-gold, #f59e0b);
+    opacity: 0.9;
+  }
+
+  .placeholder-text {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #e2e8f0;
   }
 
   .details-wrapper {

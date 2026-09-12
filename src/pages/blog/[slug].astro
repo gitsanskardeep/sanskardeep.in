@@ -33,35 +33,53 @@ const relatedPosts = allPosts.filter(p => p.slug !== post.slug).slice(0, 3);
 const title = `${post.title_english} | ${SITE_INFO.name}`;
 const description = post.summary || `Read "${post.title_english}" on Sanskar Deep Educational Portal.`;
 
-// Simple markdown-to-html helper for basic headings, bold, bullet points, and paragraphs
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatInline(str: string): string {
+  const safe = escapeHtml(str);
+  return safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+
+// Markdown-to-HTML helper supporting headings, bold, bullet points, horizontal rules, and paragraphs
 function renderMarkdown(content: string | null): string {
   if (!content) return '';
-  const lines = content.split('\n');
+  const normalized = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines = normalized.split('\n');
   let html = '';
   let inList = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
 
-    if (trimmed.startsWith('### ')) {
+    if (/^[-*_]{3,}$/.test(trimmed)) {
       if (inList) { html += '</ul>'; inList = false; }
-      html += `<h3>${trimmed.slice(4)}</h3>`;
+      html += '<hr />';
+    } else if (trimmed.startsWith('#### ')) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<h4>${formatInline(trimmed.slice(5))}</h4>`;
+    } else if (trimmed.startsWith('### ')) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<h3>${formatInline(trimmed.slice(4))}</h3>`;
     } else if (trimmed.startsWith('## ')) {
       if (inList) { html += '</ul>'; inList = false; }
-      html += `<h2>${trimmed.slice(3)}</h2>`;
+      html += `<h2>${formatInline(trimmed.slice(3))}</h2>`;
     } else if (trimmed.startsWith('# ')) {
       if (inList) { html += '</ul>'; inList = false; }
-      html += `<h1>${trimmed.slice(2)}</h1>`;
-    } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      html += `<h1>${formatInline(trimmed.slice(2))}</h1>`;
+    } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('+ ')) {
       if (!inList) { html += '<ul>'; inList = true; }
-      const itemText = trimmed.slice(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      html += `<li>${itemText}</li>`;
+      html += `<li>${formatInline(trimmed.slice(2))}</li>`;
     } else if (trimmed === '') {
       if (inList) { html += '</ul>'; inList = false; }
     } else {
       if (inList) { html += '</ul>'; inList = false; }
-      const paraText = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      html += `<p>${paraText}</p>`;
+      html += `<p>${formatInline(trimmed)}</p>`;
     }
   }
 
@@ -105,7 +123,12 @@ const renderedContent = renderMarkdown(post.content_markdown);
     <div class="container article-container">
       {post.thumbnail_url && (
         <div class="article-banner">
-          <img src={post.thumbnail_url} alt={post.title_english} class="banner-img" />
+          <img
+            src={post.thumbnail_url}
+            alt={post.title_english}
+            class="banner-img"
+            onerror="this.parentElement.style.display='none';"
+          />
         </div>
       )}
 
@@ -274,7 +297,8 @@ const renderedContent = renderMarkdown(post.content_markdown);
 
   .article-prose h1, 
   .article-prose h2, 
-  .article-prose h3 {
+  .article-prose h3,
+  .article-prose h4 {
     color: var(--color-primary-navy);
     margin-top: 2rem;
     margin-bottom: 0.75rem;
@@ -284,6 +308,13 @@ const renderedContent = renderMarkdown(post.content_markdown);
   .article-prose h1 { font-size: 1.75rem; }
   .article-prose h2 { font-size: 1.45rem; }
   .article-prose h3 { font-size: 1.2rem; }
+  .article-prose h4 { font-size: 1.05rem; }
+
+  .article-prose hr {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: 2rem 0;
+  }
 
   .article-prose p {
     margin-bottom: 1.25rem;

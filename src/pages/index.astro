@@ -1,5 +1,5 @@
 ---
-export const prerender = true;
+export const prerender = false;
 
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
@@ -9,6 +9,18 @@ import TestsSection from '../components/TestsSection.astro';
 import BlogSection from '../components/BlogSection.astro';
 import DownloadsSection from '../components/DownloadsSection.astro';
 import AboutSection from '../components/AboutSection.astro';
+import { getPublishedBlogPosts } from '../lib/blog';
+
+let db: import('@cloudflare/workers-types').D1Database | undefined;
+try {
+  const { env } = await import('cloudflare:workers');
+  db = (env as Record<string, unknown>).DB as import('@cloudflare/workers-types').D1Database | undefined;
+} catch {
+  db = undefined;
+}
+
+const livePosts = await getPublishedBlogPosts(db);
+const homeBlogPosts = livePosts.slice(0, 3);
 ---
 
 <Layout>
@@ -16,7 +28,7 @@ import AboutSection from '../components/AboutSection.astro';
 	<ClassesSection />
 	<StudyMaterialSection />
 	<TestsSection />
-	<BlogSection />
+	<BlogSection posts={homeBlogPosts} />
 	<DownloadsSection />
 	<AboutSection />
 </Layout>

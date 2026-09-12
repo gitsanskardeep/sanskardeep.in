@@ -1,5 +1,32 @@
 ---
+import type { BlogPostRecord } from '../db/schema';
 import { BLOG_POSTS } from '../data/portalData';
+
+interface Props {
+  posts?: BlogPostRecord[];
+}
+
+const { posts } = Astro.props;
+
+const displayPosts = (posts && posts.length > 0)
+  ? posts.map(p => ({
+      slug: p.slug,
+      title: p.title_english,
+      titleGujarati: p.title_gujarati,
+      category: p.category,
+      readTime: p.read_time || '5 min read',
+      summary: p.summary,
+      date: p.published_at || 'Recently Published',
+    }))
+  : BLOG_POSTS.map(p => ({
+      slug: `post-${p.id}`,
+      title: p.title,
+      titleGujarati: p.titleGujarati,
+      category: p.category,
+      readTime: p.readTime,
+      summary: p.summary,
+      date: p.date,
+    }));
 ---
 
 <section class="section section-alt" id="blog">
@@ -13,8 +40,7 @@ import { BLOG_POSTS } from '../data/portalData';
     </div>
 
     <div class="grid-3">
-      {BLOG_POSTS.map((post, idx) => {
-        const postSlug = `post-${post.id}`;
+      {displayPosts.map((post) => {
         return (
           <article class="card blog-card">
             <div class="blog-header">
@@ -23,15 +49,19 @@ import { BLOG_POSTS } from '../data/portalData';
             </div>
 
             <h3 class="blog-title">
-              <a href={`/blog/${postSlug}`} class="title-link">{post.title}</a>
+              <a href={`/blog/${post.slug}`} class="title-link">{post.title}</a>
             </h3>
-            <p class="blog-title-gujarati gujarati-text">{post.titleGujarati}</p>
+            {post.titleGujarati && (
+              <p class="blog-title-gujarati gujarati-text">{post.titleGujarati}</p>
+            )}
 
-            <p class="blog-summary">{post.summary}</p>
+            {post.summary && (
+              <p class="blog-summary">{post.summary}</p>
+            )}
 
             <div class="blog-footer">
               <span class="blog-date">{post.date}</span>
-              <a href={`/blog/${postSlug}`} class="read-more-btn">
+              <a href={`/blog/${post.slug}`} class="read-more-btn" aria-label={`Read full article: ${post.title}`}>
                 <span>Read Full Article</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12"></line>

@@ -63,14 +63,14 @@ export const SITE_INFO = {
 };
 
 export const NAV_LINKS = [
-  { label: "HOME", href: "#home" },
-  { label: "CLASSES", href: "#classes" },
-  { label: "STUDY MATERIAL", href: "#study-material" },
-  { label: "TESTS & PRACTICE", href: "#tests" },
-  { label: "BLOG", href: "#blog" },
-  { label: "DOWNLOADS", href: "#downloads" },
-  { label: "ABOUT", href: "#about" },
-  { label: "CONTACT", href: "#footer" }
+  { label: "HOME", href: "/" },
+  { label: "CLASSES", href: "/#classes" },
+  { label: "STUDY MATERIAL", href: "/study-material" },
+  { label: "TESTS & PRACTICE", href: "/#tests" },
+  { label: "BLOG", href: "/blog" },
+  { label: "DOWNLOADS", href: "/downloads" },
+  { label: "ABOUT", href: "/#about" },
+  { label: "CONTACT", href: "/#footer" }
 ];
 
 export const CLASSES_DATA: ClassInfo[] = [
@@ -81,7 +81,7 @@ export const CLASSES_DATA: ClassInfo[] = [
     description: "Build strong foundational concepts for High School in Science, Maths, Social Science, Gujarati, and English.",
     subjects: ["Mathematics", "Science & Tech", "Social Science", "Gujarati", "English", "Sanskrit"],
     badge: "Foundation Level",
-    link: "#classes"
+    link: "/#classes"
   },
   {
     id: "std-10",
@@ -90,7 +90,7 @@ export const CLASSES_DATA: ClassInfo[] = [
     description: "Complete GSEB Board exam preparation with chapter-wise IMP notes, sample papers, and blueprint guidance.",
     subjects: ["Mathematics (Basic/Standard)", "Science", "Social Science", "Gujarati (FL/SL)", "English", "Sanskrit"],
     badge: "GSEB Board Exam",
-    link: "#classes"
+    link: "/#classes"
   },
   {
     id: "std-11-sci",
@@ -99,7 +99,7 @@ export const CLASSES_DATA: ClassInfo[] = [
     description: "In-depth concept notes, diagrams, and formula sheets for Group A (PCM) and Group B (PCB).",
     subjects: ["Physics", "Chemistry", "Mathematics", "Biology", "English", "Computer"],
     badge: "Science Stream",
-    link: "#classes"
+    link: "/#classes"
   },
   {
     id: "std-11-com",
@@ -108,7 +108,7 @@ export const CLASSES_DATA: ClassInfo[] = [
     description: "Clear explanations, step-by-step accountancy solutions, economics graphs, and statistics notes.",
     subjects: ["Elements of Accounts", "Statistics", "Economics", "Business Admin (B.A.)", "English", "Gujarati"],
     badge: "General Stream",
-    link: "#classes"
+    link: "/#classes"
   },
   {
     id: "std-12-sci",
@@ -117,7 +117,7 @@ export const CLASSES_DATA: ClassInfo[] = [
     description: "Comprehensive Board & Entrance preparation material (GUJCET/NEET/JEE base) with previous year papers.",
     subjects: ["Physics", "Chemistry", "Mathematics", "Biology", "English", "Computer Studies"],
     badge: "HSC Board & Competitive",
-    link: "#classes"
+    link: "/#classes"
   },
   {
     id: "std-12-com",
@@ -126,7 +126,7 @@ export const CLASSES_DATA: ClassInfo[] = [
     description: "GSEB HSC General stream exam packages, chapter-wise IMP questions, paper presentation tips, and blueprints.",
     subjects: ["Accountancy", "Statistics", "Economics", "B.A. / Organisation", "SP & CC", "English"],
     badge: "HSC General Board",
-    link: "#classes"
+    link: "/#classes"
   }
 ];
 
