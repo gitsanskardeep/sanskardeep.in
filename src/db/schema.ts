@@ -99,6 +99,8 @@ export interface BlogPostRecord {
   category_id: number | null;
   thumbnail_url: string | null;
   display_order: number;
+  // Column added in migration 0004: rich HTML from Tiptap WYSIWYG editor
+  content_rich?: string | null;
   // Joined relational properties for UI display
   className?: string;
   categoryName?: string;

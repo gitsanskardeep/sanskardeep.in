@@ -1,0 +1,1242 @@
+---
+interface Props {
+  initialRichContent?: string | null;
+  initialMarkdown?: string | null;
+}
+
+const { initialRichContent = '', initialMarkdown = '' } = Astro.props;
+const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
+---
+
+<div class="rich-editor-root" id="blogRichEditorRoot">
+  <!-- Mode Switcher Notice for Existing Markdown Posts -->
+  {hasMarkdownOnly && (
+    <div class="legacy-markdown-banner" id="legacyMarkdownBanner">
+      <div class="banner-text">
+        <span class="banner-icon">📄</span>
+        <div>
+          <strong>Existing Markdown Article Detected</strong>
+          <p>This article was originally formatted using Markdown. You can continue editing in Markdown, or convert it to the new Visual Rich Text Editor.</p>
+        </div>
+      </div>
+      <div class="banner-actions">
+        <button type="button" class="btn btn-sm btn-outline active-mode" id="btnModeMarkdown">Edit as Markdown</button>
+        <button type="button" class="btn btn-sm btn-primary" id="btnModeVisual">Convert to Visual Editor</button>
+      </div>
+    </div>
+  )}
+
+  <!-- Hidden Rich Content Input -->
+  <input type="hidden" id="content_rich_input" name="content_rich" value={initialRichContent || ''} />
+
+  <!-- Markdown Fallback Editor (shown only when in markdown mode) -->
+  <div id="markdownEditorContainer" style={hasMarkdownOnly ? 'display: block;' : 'display: none;'}>
+    <label for="content_markdown_input" class="editor-sublabel">Markdown Source Code</label>
+    <textarea 
+      id="content_markdown_input" 
+      name="content_markdown" 
+      rows="12" 
+      class="form-control font-mono markdown-textarea"
+      placeholder="Type markdown here..."
+    >{initialMarkdown || ''}</textarea>
+    <span class="field-hint">Supports `# Heading`, `**bold**`, `- bullets`, etc.</span>
+  </div>
+
+  <!-- Visual Rich Text Editor Container -->
+  <div id="visualEditorContainer" style={hasMarkdownOnly ? 'display: none;' : 'display: block;'}>
+    <!-- Toolbar -->
+    <div class="editor-toolbar" role="toolbar" aria-label="Rich Text Editor Toolbar">
+      <!-- Headings / Paragraph Group -->
+      <div class="toolbar-group">
+        <select class="toolbar-select" id="tbHeadingSelect" title="Text Style">
+          <option value="p">Paragraph</option>
+          <option value="h1">Heading 1</option>
+          <option value="h2">Heading 2</option>
+          <option value="h3">Heading 3</option>
+          <option value="h4">Heading 4</option>
+        </select>
+      </div>
+
+      <!-- Basic Formatting -->
+      <div class="toolbar-group">
+        <button type="button" class="tb-btn" id="tbBold" title="Bold (Ctrl+B)"><strong>B</strong></button>
+        <button type="button" class="tb-btn" id="tbItalic" title="Italic (Ctrl+I)"><em>I</em></button>
+        <button type="button" class="tb-btn" id="tbUnderline" title="Underline (Ctrl+U)"><span style="text-decoration: underline;">U</span></button>
+        <button type="button" class="tb-btn" id="tbStrike" title="Strikethrough"><span style="text-decoration: line-through;">S</span></button>
+      </div>
+
+      <!-- Colors -->
+      <div class="toolbar-group">
+        <label class="tb-color-label" title="Text Color">
+          <span class="color-indicator" id="textColorIndicator" style="color: #1e3a5f;">A</span>
+          <input type="color" id="tbTextColor" value="#1e3a5f" class="color-picker-input" />
+        </label>
+        <label class="tb-color-label" title="Text Highlight">
+          <span class="highlight-indicator">🖊️</span>
+          <input type="color" id="tbHighlightColor" value="#fef08a" class="color-picker-input" />
+        </label>
+        <button type="button" class="tb-btn" id="tbClearColor" title="Clear Color / Highlight">✕</button>
+      </div>
+
+      <!-- Alignment -->
+      <div class="toolbar-group">
+        <button type="button" class="tb-btn" id="tbAlignLeft" title="Align Left">⇤</button>
+        <button type="button" class="tb-btn" id="tbAlignCenter" title="Align Center">≡</button>
+        <button type="button" class="tb-btn" id="tbAlignRight" title="Align Right">⇥</button>
+        <button type="button" class="tb-btn" id="tbAlignJustify" title="Justify">≣</button>
+      </div>
+
+      <!-- Lists & Quotes -->
+      <div class="toolbar-group">
+        <button type="button" class="tb-btn" id="tbBulletList" title="Bullet List">•≡</button>
+        <button type="button" class="tb-btn" id="tbOrderedList" title="Numbered List">1.≡</button>
+        <button type="button" class="tb-btn" id="tbBlockquote" title="Quote Block">“</button>
+        <button type="button" class="tb-btn" id="tbHorizontalRule" title="Horizontal Line">―</button>
+      </div>
+
+      <!-- Links & Tables -->
+      <div class="toolbar-group">
+        <button type="button" class="tb-btn" id="tbLink" title="Insert / Edit Link">🔗</button>
+        <div class="dropdown-wrapper">
+          <button type="button" class="tb-btn" id="tbTableBtn" title="Table Operations">⊞ Table ▾</button>
+          <div class="dropdown-menu" id="tableMenu">
+            <button type="button" class="dropdown-item" id="tbInsertTable">Insert Table (3×3)</button>
+            <button type="button" class="dropdown-item" id="tbAddRowAfter">Add Row Below</button>
+            <button type="button" class="dropdown-item" id="tbDeleteRow">Delete Current Row</button>
+            <button type="button" class="dropdown-item" id="tbAddColAfter">Add Column Right</button>
+            <button type="button" class="dropdown-item" id="tbDeleteCol">Delete Current Column</button>
+            <button type="button" class="dropdown-item item-danger" id="tbDeleteTable">Delete Entire Table</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mathematics Button (Prominent) -->
+      <div class="toolbar-group">
+        <button type="button" class="tb-btn tb-math-btn" id="tbMathBtn" title="Insert Math Formula / ગણિત સમીકરણ">
+          <span class="math-sigma">∑</span>
+          <span class="math-label">Math / ગણિત</span>
+        </button>
+      </div>
+
+      <!-- History -->
+      <div class="toolbar-group">
+        <button type="button" class="tb-btn" id="tbUndo" title="Undo (Ctrl+Z)">↶</button>
+        <button type="button" class="tb-btn" id="tbRedo" title="Redo (Ctrl+Y)">↷</button>
+      </div>
+    </div>
+
+    <!-- Tiptap Editor Surface -->
+    <div class="editor-surface" id="tiptapEditor"></div>
+  </div>
+
+  <!-- Math Modal Dialog -->
+  <div class="math-modal-backdrop" id="mathModal" style="display: none;">
+    <div class="math-modal-dialog">
+      <div class="modal-header">
+        <div class="header-titles">
+          <h3 class="modal-title">Insert Math Formula • ગણિત સમીકરણ</h3>
+          <p class="modal-sub">Create formulas, fractions, powers, roots, and symbols without writing complex LaTeX code.</p>
+        </div>
+        <button type="button" class="modal-close-btn" id="modalCloseBtn" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Math Mode Selection -->
+        <div class="math-type-selector">
+          <label class="type-option">
+            <input type="radio" name="math_display_type" value="inline" checked id="mathTypeInline" />
+            <span><strong>Inline (વાક્યમાં)</strong> - Inside text, e.g. "જો $x^2 = 25$ હોય તો..."</span>
+          </label>
+          <label class="type-option">
+            <input type="radio" name="math_display_type" value="block" id="mathTypeBlock" />
+            <span><strong>Block / Centered (કેન્દ્રિત)</strong> - Standalone formula on its own line</span>
+          </label>
+        </div>
+
+        <!-- Live Preview Area -->
+        <div class="math-preview-card">
+          <span class="preview-tag">Live Preview (વાસ્તવિક દ્રશ્ય)</span>
+          <div class="preview-render" id="katexLivePreview">
+            <span class="preview-empty">Type formula or click templates below to preview...</span>
+          </div>
+        </div>
+
+        <!-- Interactive Formula Builders -->
+        <div class="builder-section">
+          <div class="section-title">Quick Builders (ક્વિક બિલ્ડર):</div>
+          <div class="builder-grid">
+            <!-- Fraction -->
+            <div class="builder-card">
+              <span class="builder-name">Fraction (અપૂર્ણાંક)</span>
+              <div class="builder-inputs">
+                <input type="text" id="bldFracNum" placeholder="Num (a)" class="bld-input" />
+                <span class="bld-sep">/</span>
+                <input type="text" id="bldFracDen" placeholder="Den (b)" class="bld-input" />
+                <button type="button" class="btn btn-sm btn-outline bld-btn" id="btnInsertFrac">+ Insert</button>
+              </div>
+            </div>
+
+            <!-- Power -->
+            <div class="builder-card">
+              <span class="builder-name">Power / Exponent (ઘાત)</span>
+              <div class="builder-inputs">
+                <input type="text" id="bldPowBase" placeholder="Base (x)" class="bld-input" />
+                <span class="bld-sep">^</span>
+                <input type="text" id="bldPowExp" placeholder="Exp (2)" class="bld-input" />
+                <button type="button" class="btn btn-sm btn-outline bld-btn" id="btnInsertPow">+ Insert</button>
+              </div>
+            </div>
+
+            <!-- Subscript -->
+            <div class="builder-card">
+              <span class="builder-name">Subscript (પાદાંક)</span>
+              <div class="builder-inputs">
+                <input type="text" id="bldSubBase" placeholder="Base (x)" class="bld-input" />
+                <span class="bld-sep">_</span>
+                <input type="text" id="bldSubVal" placeholder="Sub (1)" class="bld-input" />
+                <button type="button" class="btn btn-sm btn-outline bld-btn" id="btnInsertSub">+ Insert</button>
+              </div>
+            </div>
+
+            <!-- Square Root -->
+            <div class="builder-card">
+              <span class="builder-name">Root (વર્ગમૂળ / ઘનમૂળ)</span>
+              <div class="builder-inputs">
+                <input type="text" id="bldRootIndex" placeholder="Index (n)" class="bld-input" style="width: 70px;" />
+                <span class="bld-sep">√</span>
+                <input type="text" id="bldRootExpr" placeholder="Value (x)" class="bld-input" />
+                <button type="button" class="btn btn-sm btn-outline bld-btn" id="btnInsertRoot">+ Insert</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Symbol Palettes -->
+        <div class="symbols-section">
+          <!-- Greek Letters -->
+          <div class="symbol-group">
+            <span class="group-label">Greek (ગ્રીક પ્રતીકો):</span>
+            <div class="symbol-buttons">
+              <button type="button" class="sym-btn" data-latex="\alpha">α</button>
+              <button type="button" class="sym-btn" data-latex="\beta">β</button>
+              <button type="button" class="sym-btn" data-latex="\gamma">γ</button>
+              <button type="button" class="sym-btn" data-latex="\delta">δ</button>
+              <button type="button" class="sym-btn" data-latex="\theta">θ</button>
+              <button type="button" class="sym-btn" data-latex="\lambda">λ</button>
+              <button type="button" class="sym-btn" data-latex="\mu">μ</button>
+              <button type="button" class="sym-btn" data-latex="\pi">π</button>
+              <button type="button" class="sym-btn" data-latex="\sigma">σ</button>
+              <button type="button" class="sym-btn" data-latex="\Sigma">Σ</button>
+              <button type="button" class="sym-btn" data-latex="\Delta">Δ</button>
+              <button type="button" class="sym-btn" data-latex="\Omega">Ω</button>
+            </div>
+          </div>
+
+          <!-- Basic Operators -->
+          <div class="symbol-group">
+            <span class="group-label">Basic Operators (ચિહ્નો):</span>
+            <div class="symbol-buttons">
+              <button type="button" class="sym-btn" data-latex="\pm">±</button>
+              <button type="button" class="sym-btn" data-latex="\times">×</button>
+              <button type="button" class="sym-btn" data-latex="\div">÷</button>
+              <button type="button" class="sym-btn" data-latex="\neq">≠</button>
+              <button type="button" class="sym-btn" data-latex="\approx">≈</button>
+              <button type="button" class="sym-btn" data-latex="\le">≤</button>
+              <button type="button" class="sym-btn" data-latex="\ge">≥</button>
+              <button type="button" class="sym-btn" data-latex="\infty">∞</button>
+            </div>
+          </div>
+
+          <!-- Geometry & Angles -->
+          <div class="symbol-group">
+            <span class="group-label">Geometry (ભૂમિતિ):</span>
+            <div class="symbol-buttons">
+              <button type="button" class="sym-btn" data-latex="\triangle">△</button>
+              <button type="button" class="sym-btn" data-latex="\angle">∠</button>
+              <button type="button" class="sym-btn" data-latex="\perp">⟂</button>
+              <button type="button" class="sym-btn" data-latex="\parallel">∥</button>
+              <button type="button" class="sym-btn" data-latex="\cong">≅</button>
+              <button type="button" class="sym-btn" data-latex="\sim">∼</button>
+              <button type="button" class="sym-btn" data-latex="^\circ">°</button>
+            </div>
+          </div>
+
+          <!-- Sets -->
+          <div class="symbol-group">
+            <span class="group-label">Sets (ગણ):</span>
+            <div class="symbol-buttons">
+              <button type="button" class="sym-btn" data-latex="\in">∈</button>
+              <button type="button" class="sym-btn" data-latex="\notin">∉</button>
+              <button type="button" class="sym-btn" data-latex="\subset">⊂</button>
+              <button type="button" class="sym-btn" data-latex="\subseteq">⊆</button>
+              <button type="button" class="sym-btn" data-latex="\cup">∪</button>
+              <button type="button" class="sym-btn" data-latex="\cap">∩</button>
+              <button type="button" class="sym-btn" data-latex="\emptyset">∅</button>
+            </div>
+          </div>
+
+          <!-- Common Board Formulas -->
+          <div class="symbol-group">
+            <span class="group-label">Common Formulas (સૂત્રો):</span>
+            <div class="formula-chips">
+              <button type="button" class="chip-btn" data-latex="x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}">Quadratic Formula (દ્વિઘાત સૂત્ર)</button>
+              <button type="button" class="chip-btn" data-latex="a^2 + b^2 = c^2">Pythagoras (પાયથાગોરસ)</button>
+              <button type="button" class="chip-btn" data-latex="A = \pi r^2">Area of Circle (વર્તુળનું ક્ષેત્રફળ)</button>
+              <button type="button" class="chip-btn" data-latex="\sin^2\theta + \cos^2\theta = 1">Trig Identity (ત્રિકોણમિતિ)</button>
+              <button type="button" class="chip-btn" data-latex="\sum_{i=1}^{n} x_i">Summation (સરવાળો)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formula Expression Input -->
+        <div class="formula-input-group">
+          <label for="mathFormulaInput">Formula Code (LaTeX / સમીકરણ કોડ):</label>
+          <textarea id="mathFormulaInput" rows="2" class="form-control font-mono" placeholder="Type or click buttons above... e.g. x^2 + y^2 = r^2"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" id="btnCancelMath">Cancel (રદ કરો)</button>
+        <button type="button" class="btn btn-primary" id="btnInsertMath">Insert Formula (ઉમેરો)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .rich-editor-root {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .legacy-markdown-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fefce8;
+    border: 1px solid #fef08a;
+    border-radius: var(--radius-sm);
+    padding: 0.85rem 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .banner-text {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    font-size: 0.85rem;
+    color: #854d0e;
+  }
+
+  .banner-text p {
+    margin: 0.15rem 0 0 0;
+    font-size: 0.8rem;
+    color: #713f12;
+  }
+
+  .banner-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .active-mode {
+    background-color: #fef08a;
+    font-weight: 700;
+  }
+
+  .editor-sublabel {
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: var(--color-text-medium);
+    margin-bottom: 0.25rem;
+    display: block;
+  }
+
+  .markdown-textarea {
+    min-height: 250px;
+  }
+
+  /* Toolbar Styling */
+  .editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem;
+    background-color: #f8fafc;
+    border: 1px solid var(--color-border);
+    border-top-left-radius: var(--radius-sm);
+    border-top-right-radius: var(--radius-sm);
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .toolbar-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding-right: 0.4rem;
+    border-right: 1px solid #e2e8f0;
+  }
+
+  .toolbar-group:last-child {
+    border-right: none;
+  }
+
+  .toolbar-select {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background-color: #ffffff;
+    font-weight: 600;
+    color: var(--color-primary-navy);
+  }
+
+  .tb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 0.4rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-primary-navy);
+    background-color: #ffffff;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .tb-btn:hover {
+    background-color: #f1f5f9;
+    border-color: #94a3b8;
+  }
+
+  .tb-btn.is-active {
+    background-color: #1e3a5f;
+    color: #ffffff;
+    border-color: #1e3a5f;
+  }
+
+  .tb-math-btn {
+    background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%);
+    color: #ffffff;
+    border-color: #1e3a5f;
+    padding: 0 0.6rem;
+    gap: 0.35rem;
+    font-weight: 700;
+  }
+
+  .tb-math-btn:hover {
+    background: linear-gradient(135deg, #0f243e 0%, #1d4ed8 100%);
+    color: #fcd34d;
+  }
+
+  .math-sigma {
+    font-size: 1.1rem;
+    color: #f59e0b;
+  }
+
+  .tb-color-label {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background-color: #ffffff;
+    cursor: pointer;
+  }
+
+  .color-picker-input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+
+  .color-indicator {
+    font-weight: 900;
+    font-size: 0.9rem;
+    border-bottom: 2px solid currentColor;
+    line-height: 1;
+  }
+
+  .highlight-indicator {
+    font-size: 0.85rem;
+  }
+
+  /* Dropdown for Table */
+  .dropdown-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 50;
+    display: none;
+    flex-direction: column;
+    min-width: 170px;
+    background-color: #ffffff;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-top: 2px;
+    padding: 0.25rem 0;
+  }
+
+  .dropdown-wrapper:hover .dropdown-menu,
+  .dropdown-wrapper:focus-within .dropdown-menu {
+    display: flex;
+  }
+
+  .dropdown-item {
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--color-primary-navy);
+    cursor: pointer;
+  }
+
+  .dropdown-item:hover {
+    background-color: #f1f5f9;
+  }
+
+  .dropdown-item.item-danger {
+    color: #dc2626;
+  }
+
+  /* Editor Surface */
+  .editor-surface {
+    min-height: 300px;
+    max-height: 550px;
+    overflow-y: auto;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--color-border);
+    border-top: none;
+    border-bottom-left-radius: var(--radius-sm);
+    border-bottom-right-radius: var(--radius-sm);
+    background-color: #ffffff;
+    color: var(--color-text-dark);
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
+  .editor-surface:focus {
+    outline: none;
+  }
+
+  /* Tiptap content inside editor */
+  :global(.editor-surface .ProseMirror) {
+    outline: none;
+    min-height: 280px;
+  }
+
+  :global(.editor-surface .ProseMirror p) {
+    margin-bottom: 0.85rem;
+  }
+
+  :global(.editor-surface .ProseMirror h1),
+  :global(.editor-surface .ProseMirror h2),
+  :global(.editor-surface .ProseMirror h3),
+  :global(.editor-surface .ProseMirror h4) {
+    color: var(--color-primary-navy);
+    font-weight: 800;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  :global(.editor-surface .ProseMirror ul),
+  :global(.editor-surface .ProseMirror ol) {
+    margin: 0.5rem 0 1rem 1.5rem;
+  }
+
+  :global(.editor-surface .ProseMirror blockquote) {
+    border-left: 3px solid var(--color-accent-gold);
+    background-color: #fefce8;
+    padding: 0.5rem 0.75rem;
+    margin: 1rem 0;
+    font-style: italic;
+  }
+
+  :global(.editor-surface .ProseMirror table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+  }
+
+  :global(.editor-surface .ProseMirror th),
+  :global(.editor-surface .ProseMirror td) {
+    border: 1px solid #cbd5e1;
+    padding: 0.5rem;
+    vertical-align: top;
+  }
+
+  :global(.editor-surface .ProseMirror th) {
+    background-color: #f1f5f9;
+    font-weight: 700;
+  }
+
+  :global(.editor-surface .tiptap-mathematics-render) {
+    display: inline-block;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    background-color: #eff6ff;
+    border: 1px dashed #bfdbfe;
+    cursor: pointer;
+  }
+
+  :global(.editor-surface div[data-type="block-math"]) {
+    display: flex;
+    justify-content: center;
+    padding: 0.75rem;
+    margin: 0.75rem 0;
+    background-color: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  /* Modal Backdrop & Dialog */
+  .math-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background-color: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .math-modal-dialog {
+    background-color: #ffffff;
+    border-radius: var(--radius-md);
+    width: 100%;
+    max-width: 680px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    background-color: #f8fafc;
+  }
+
+  .modal-title {
+    font-size: 1.2rem;
+    color: var(--color-primary-navy);
+    margin-bottom: 0.2rem;
+  }
+
+  .modal-sub {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .modal-body {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .math-type-selector {
+    display: flex;
+    gap: 1.25rem;
+    padding: 0.75rem;
+    background-color: #f8fafc;
+    border-radius: var(--radius-sm);
+    border: 1px solid #e2e8f0;
+    font-size: 0.85rem;
+  }
+
+  .type-option {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+  }
+
+  .math-preview-card {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .preview-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+  }
+
+  .preview-render {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    font-size: 1.2rem;
+    overflow-x: auto;
+    padding: 0.5rem 0;
+  }
+
+  .preview-empty {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    font-style: italic;
+  }
+
+  .builder-section, .symbols-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .section-title {
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: var(--color-primary-navy);
+  }
+
+  .builder-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .builder-card {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .builder-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #334155;
+  }
+
+  .builder-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .bld-input {
+    flex: 1;
+    padding: 0.3rem 0.4rem;
+    font-size: 0.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: 3px;
+    min-width: 40px;
+  }
+
+  .bld-sep {
+    font-weight: 700;
+    color: #64748b;
+  }
+
+  .bld-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .symbol-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px dashed #e2e8f0;
+  }
+
+  .group-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #475569;
+    min-width: 130px;
+  }
+
+  .symbol-buttons {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+  }
+
+  .sym-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+    border: 1px solid var(--color-border);
+    background-color: #ffffff;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .sym-btn:hover {
+    background-color: #e2e8f0;
+    border-color: #94a3b8;
+  }
+
+  .formula-chips {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+
+  .chip-btn {
+    font-size: 0.72rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #bfdbfe;
+    background-color: #eff6ff;
+    color: #1e40af;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .chip-btn:hover {
+    background-color: #dbeafe;
+  }
+
+  .formula-input-group label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-primary-navy);
+    margin-bottom: 0.25rem;
+    display: block;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--color-border);
+    background-color: #f8fafc;
+  }
+
+  @media (max-width: 640px) {
+    .builder-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  import { Editor } from '@tiptap/core';
+  import { StarterKit } from '@tiptap/starter-kit';
+  import { Underline } from '@tiptap/extension-underline';
+  import { Link } from '@tiptap/extension-link';
+  import { Table } from '@tiptap/extension-table';
+  import { TableRow } from '@tiptap/extension-table-row';
+  import { TableCell } from '@tiptap/extension-table-cell';
+  import { TableHeader } from '@tiptap/extension-table-header';
+  import { TextAlign } from '@tiptap/extension-text-align';
+  import { Highlight } from '@tiptap/extension-highlight';
+  import { Color } from '@tiptap/extension-color';
+  import { TextStyle } from '@tiptap/extension-text-style';
+  import { Mathematics } from '@tiptap/extension-mathematics';
+  import katex from 'katex';
+  import DOMPurify from 'dompurify';
+
+  // Elements
+  const root = document.getElementById('blogRichEditorRoot');
+  const richInput = document.getElementById('content_rich_input') as HTMLInputElement;
+  const markdownInput = document.getElementById('content_markdown_input') as HTMLTextAreaElement;
+  const visualContainer = document.getElementById('visualEditorContainer');
+  const markdownContainer = document.getElementById('markdownEditorContainer');
+  const btnModeMarkdown = document.getElementById('btnModeMarkdown');
+  const btnModeVisual = document.getElementById('btnModeVisual');
+
+  const editorEl = document.getElementById('tiptapEditor');
+  let currentMode: 'visual' | 'markdown' = markdownContainer && markdownContainer.style.display !== 'none' ? 'markdown' : 'visual';
+
+  // Math Modal Elements
+  const mathModal = document.getElementById('mathModal');
+  const modalCloseBtn = document.getElementById('modalCloseBtn');
+  const btnCancelMath = document.getElementById('btnCancelMath');
+  const btnInsertMath = document.getElementById('btnInsertMath');
+  const mathFormulaInput = document.getElementById('mathFormulaInput') as HTMLTextAreaElement;
+  const katexLivePreview = document.getElementById('katexLivePreview');
+  const mathTypeInline = document.getElementById('mathTypeInline') as HTMLInputElement;
+
+  // Initialize Tiptap Editor
+  const initialContent = richInput?.value || '';
+
+  const editor = new Editor({
+    element: editorEl || undefined,
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3, 4]
+        }
+      }),
+      Underline,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer'
+        }
+      }),
+      Table.configure({
+        resizable: false
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      TextAlign.configure({
+        types: ['heading', 'paragraph']
+      }),
+      TextStyle,
+      Color,
+      Highlight.configure({
+        multicolor: true
+      }),
+      Mathematics.configure({
+        katexOptions: {
+          throwOnError: false
+        }
+      })
+    ],
+    content: initialContent,
+    onUpdate({ editor }) {
+      syncContent();
+      updateToolbarActiveStates();
+    },
+    onSelectionUpdate() {
+      updateToolbarActiveStates();
+    }
+  });
+
+  // Mode switching
+  btnModeVisual?.addEventListener('click', () => {
+    currentMode = 'visual';
+    if (markdownContainer) markdownContainer.style.display = 'none';
+    if (visualContainer) visualContainer.style.display = 'block';
+    btnModeVisual.classList.add('active-mode');
+    btnModeMarkdown?.classList.remove('active-mode');
+
+    // If editor has no content but markdown textarea has text, convert basic paragraphs/headings
+    if (!editor.getText().trim() && markdownInput?.value.trim()) {
+      const md = markdownInput.value;
+      const lines = md.split('\n').map(l => l.trim()).filter(Boolean);
+      const html = lines.map(line => {
+        if (line.startsWith('#### ')) return `<h4>${line.slice(5)}</h4>`;
+        if (line.startsWith('### ')) return `<h3>${line.slice(4)}</h3>`;
+        if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
+        if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
+        if (line.startsWith('- ') || line.startsWith('* ')) return `<ul><li>${line.slice(2)}</li></ul>`;
+        return `<p>${line}</p>`;
+      }).join('');
+      editor.commands.setContent(html);
+    }
+  });
+
+  btnModeMarkdown?.addEventListener('click', () => {
+    currentMode = 'markdown';
+    if (visualContainer) visualContainer.style.display = 'none';
+    if (markdownContainer) markdownContainer.style.display = 'block';
+    btnModeMarkdown.classList.add('active-mode');
+    btnModeVisual?.classList.remove('active-mode');
+  });
+
+  // Sync content into hidden form input before submission
+  function syncContent() {
+    if (currentMode === 'visual') {
+      const rawHtml = editor.getHTML();
+      // Sanitize with DOMPurify while preserving data-type and data-latex for math
+      const cleanHtml = DOMPurify.sanitize(rawHtml, {
+        ADD_TAGS: ['span', 'div', 'hr', 'mark', 'u', 's'],
+        ADD_ATTR: ['data-type', 'data-latex', 'target', 'rel', 'style', 'colspan', 'rowspan']
+      });
+      if (richInput) richInput.value = cleanHtml;
+    }
+  }
+
+  // Intercept closest form submit
+  const form = root?.closest('form');
+  form?.addEventListener('submit', () => {
+    syncContent();
+  });
+
+  // Toolbar Actions
+  const tbHeadingSelect = document.getElementById('tbHeadingSelect') as HTMLSelectElement;
+  tbHeadingSelect?.addEventListener('change', (e) => {
+    const val = (e.target as HTMLSelectElement).value;
+    if (val === 'p') editor.chain().focus().setParagraph().run();
+    else if (val === 'h1') editor.chain().focus().toggleHeading({ level: 1 }).run();
+    else if (val === 'h2') editor.chain().focus().toggleHeading({ level: 2 }).run();
+    else if (val === 'h3') editor.chain().focus().toggleHeading({ level: 3 }).run();
+    else if (val === 'h4') editor.chain().focus().toggleHeading({ level: 4 }).run();
+  });
+
+  document.getElementById('tbBold')?.addEventListener('click', () => editor.chain().focus().toggleBold().run());
+  document.getElementById('tbItalic')?.addEventListener('click', () => editor.chain().focus().toggleItalic().run());
+  document.getElementById('tbUnderline')?.addEventListener('click', () => editor.chain().focus().toggleUnderline().run());
+  document.getElementById('tbStrike')?.addEventListener('click', () => editor.chain().focus().toggleStrike().run());
+
+  // Colors
+  const tbTextColor = document.getElementById('tbTextColor') as HTMLInputElement;
+  tbTextColor?.addEventListener('input', (e) => {
+    const col = (e.target as HTMLInputElement).value;
+    editor.chain().focus().setColor(col).run();
+    const ind = document.getElementById('textColorIndicator');
+    if (ind) ind.style.color = col;
+  });
+
+  const tbHighlightColor = document.getElementById('tbHighlightColor') as HTMLInputElement;
+  tbHighlightColor?.addEventListener('input', (e) => {
+    const col = (e.target as HTMLInputElement).value;
+    editor.chain().focus().toggleHighlight({ color: col }).run();
+  });
+
+  document.getElementById('tbClearColor')?.addEventListener('click', () => {
+    editor.chain().focus().unsetColor().unsetHighlight().run();
+  });
+
+  // Alignment
+  document.getElementById('tbAlignLeft')?.addEventListener('click', () => editor.chain().focus().setTextAlign('left').run());
+  document.getElementById('tbAlignCenter')?.addEventListener('click', () => editor.chain().focus().setTextAlign('center').run());
+  document.getElementById('tbAlignRight')?.addEventListener('click', () => editor.chain().focus().setTextAlign('right').run());
+  document.getElementById('tbAlignJustify')?.addEventListener('click', () => editor.chain().focus().setTextAlign('justify').run());
+
+  // Lists & Structure
+  document.getElementById('tbBulletList')?.addEventListener('click', () => editor.chain().focus().toggleBulletList().run());
+  document.getElementById('tbOrderedList')?.addEventListener('click', () => editor.chain().focus().toggleOrderedList().run());
+  document.getElementById('tbBlockquote')?.addEventListener('click', () => editor.chain().focus().toggleBlockquote().run());
+  document.getElementById('tbHorizontalRule')?.addEventListener('click', () => editor.chain().focus().setHorizontalRule().run());
+
+  // Links
+  document.getElementById('tbLink')?.addEventListener('click', () => {
+    const prev = editor.getAttributes('link').href || '';
+    const url = prompt('Enter Web Link URL (વેબસાઇટ લિંક દાખલ કરો):', prev);
+    if (url === null) return;
+    if (url === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+    } else {
+      editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+    }
+  });
+
+  // Table operations
+  document.getElementById('tbInsertTable')?.addEventListener('click', () => {
+    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+  });
+  document.getElementById('tbAddRowAfter')?.addEventListener('click', () => editor.chain().focus().addRowAfter().run());
+  document.getElementById('tbDeleteRow')?.addEventListener('click', () => editor.chain().focus().deleteRow().run());
+  document.getElementById('tbAddColAfter')?.addEventListener('click', () => editor.chain().focus().addColumnAfter().run());
+  document.getElementById('tbDeleteCol')?.addEventListener('click', () => editor.chain().focus().deleteColumn().run());
+  document.getElementById('tbDeleteTable')?.addEventListener('click', () => editor.chain().focus().deleteTable().run());
+
+  // Undo / Redo
+  document.getElementById('tbUndo')?.addEventListener('click', () => editor.chain().focus().undo().run());
+  document.getElementById('tbRedo')?.addEventListener('click', () => editor.chain().focus().redo().run());
+
+  // Update Toolbar states
+  function updateToolbarActiveStates() {
+    if (!editor) return;
+
+    toggleBtnClass('tbBold', editor.isActive('bold'));
+    toggleBtnClass('tbItalic', editor.isActive('italic'));
+    toggleBtnClass('tbUnderline', editor.isActive('underline'));
+    toggleBtnClass('tbStrike', editor.isActive('strike'));
+    toggleBtnClass('tbBulletList', editor.isActive('bulletList'));
+    toggleBtnClass('tbOrderedList', editor.isActive('orderedList'));
+    toggleBtnClass('tbBlockquote', editor.isActive('blockquote'));
+    toggleBtnClass('tbAlignLeft', editor.isActive({ textAlign: 'left' }));
+    toggleBtnClass('tbAlignCenter', editor.isActive({ textAlign: 'center' }));
+    toggleBtnClass('tbAlignRight', editor.isActive({ textAlign: 'right' }));
+    toggleBtnClass('tbAlignJustify', editor.isActive({ textAlign: 'justify' }));
+
+    if (tbHeadingSelect) {
+      if (editor.isActive('heading', { level: 1 })) tbHeadingSelect.value = 'h1';
+      else if (editor.isActive('heading', { level: 2 })) tbHeadingSelect.value = 'h2';
+      else if (editor.isActive('heading', { level: 3 })) tbHeadingSelect.value = 'h3';
+      else if (editor.isActive('heading', { level: 4 })) tbHeadingSelect.value = 'h4';
+      else tbHeadingSelect.value = 'p';
+    }
+  }
+
+  function toggleBtnClass(btnId: string, isActive: boolean) {
+    const el = document.getElementById(btnId);
+    if (el) {
+      if (isActive) el.classList.add('is-active');
+      else el.classList.remove('is-active');
+    }
+  }
+
+  // --- Math Modal Logic ---
+  document.getElementById('tbMathBtn')?.addEventListener('click', () => {
+    openMathModal();
+  });
+
+  modalCloseBtn?.addEventListener('click', closeMathModal);
+  btnCancelMath?.addEventListener('click', closeMathModal);
+
+  function openMathModal() {
+    if (mathModal) mathModal.style.display = 'flex';
+    if (mathFormulaInput) {
+      mathFormulaInput.focus();
+      renderLiveKaTeX(mathFormulaInput.value);
+    }
+  }
+
+  function closeMathModal() {
+    if (mathModal) mathModal.style.display = 'none';
+  }
+
+  function renderLiveKaTeX(expr: string) {
+    if (!katexLivePreview) return;
+    const trimmed = expr.trim();
+    if (!trimmed) {
+      katexLivePreview.innerHTML = '<span class="preview-empty">Type formula or click templates below to preview...</span>';
+      return;
+    }
+    try {
+      const isDisplay = !mathTypeInline?.checked;
+      katex.render(trimmed, katexLivePreview, {
+        displayMode: isDisplay,
+        throwOnError: false
+      });
+    } catch (e: any) {
+      katexLivePreview.innerHTML = `<span class="katex-error">${e?.message || 'Invalid formula'}</span>`;
+    }
+  }
+
+  mathFormulaInput?.addEventListener('input', () => {
+    renderLiveKaTeX(mathFormulaInput.value);
+  });
+
+  document.querySelectorAll('input[name="math_display_type"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      renderLiveKaTeX(mathFormulaInput?.value || '');
+    });
+  });
+
+  // Helper to insert snippet into textarea at cursor
+  function insertIntoFormula(snippet: string) {
+    if (!mathFormulaInput) return;
+    const start = mathFormulaInput.selectionStart || 0;
+    const end = mathFormulaInput.selectionEnd || 0;
+    const val = mathFormulaInput.value;
+    mathFormulaInput.value = val.substring(0, start) + snippet + val.substring(end);
+    mathFormulaInput.selectionStart = mathFormulaInput.selectionEnd = start + snippet.length;
+    mathFormulaInput.focus();
+    renderLiveKaTeX(mathFormulaInput.value);
+  }
+
+  // Builder Buttons
+  document.getElementById('btnInsertFrac')?.addEventListener('click', () => {
+    const num = (document.getElementById('bldFracNum') as HTMLInputElement)?.value || 'a';
+    const den = (document.getElementById('bldFracDen') as HTMLInputElement)?.value || 'b';
+    insertIntoFormula(`\\frac{${num}}{${den}}`);
+  });
+
+  document.getElementById('btnInsertPow')?.addEventListener('click', () => {
+    const base = (document.getElementById('bldPowBase') as HTMLInputElement)?.value || 'x';
+    const exp = (document.getElementById('bldPowExp') as HTMLInputElement)?.value || '2';
+    insertIntoFormula(`{${base}}^{${exp}}`);
+  });
+
+  document.getElementById('btnInsertSub')?.addEventListener('click', () => {
+    const base = (document.getElementById('bldSubBase') as HTMLInputElement)?.value || 'x';
+    const sub = (document.getElementById('bldSubVal') as HTMLInputElement)?.value || '1';
+    insertIntoFormula(`{${base}}_{${sub}}`);
+  });
+
+  document.getElementById('btnInsertRoot')?.addEventListener('click', () => {
+    const idx = (document.getElementById('bldRootIndex') as HTMLInputElement)?.value.trim();
+    const expr = (document.getElementById('bldRootExpr') as HTMLInputElement)?.value || 'x';
+    if (idx) insertIntoFormula(`\\sqrt[${idx}]{${expr}}`);
+    else insertIntoFormula(`\\sqrt{${expr}}`);
+  });
+
+  // Clickable Symbol Buttons
+  document.querySelectorAll('.sym-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const latex = btn.getAttribute('data-latex');
+      if (latex) insertIntoFormula(latex + ' ');
+    });
+  });
+
+  // Formula Chips
+  document.querySelectorAll('.chip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const latex = btn.getAttribute('data-latex');
+      if (latex) {
+        if (mathFormulaInput) {
+          mathFormulaInput.value = latex;
+          renderLiveKaTeX(latex);
+        }
+      }
+    });
+  });
+
+  // Insert Formula into Tiptap
+  btnInsertMath?.addEventListener('click', () => {
+    const latex = mathFormulaInput?.value.trim();
+    if (!latex) {
+      alert('Please enter or build a formula first.');
+      return;
+    }
+
+    const isInline = mathTypeInline?.checked;
+    if (isInline) {
+      // @ts-ignore
+      editor.commands.insertInlineMath({ latex });
+    } else {
+      // @ts-ignore
+      editor.commands.insertBlockMath({ latex });
+    }
+
+    closeMathModal();
+    if (mathFormulaInput) mathFormulaInput.value = '';
+    editor.commands.focus();
+  });
+</script>

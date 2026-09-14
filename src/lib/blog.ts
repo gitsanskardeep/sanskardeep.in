@@ -16,6 +16,7 @@ export interface CreateBlogPostDTO {
   class_id?: number | null;
   summary: string;
   content_markdown?: string | null;
+  content_rich?: string | null;
   thumbnail_url?: string | null;
   read_time?: string | null;
   status?: 'draft' | 'published' | 'archived';
@@ -51,6 +52,7 @@ function getStaticBlogFallback(): BlogPostRecord[] {
     category: item.category,
     summary: item.summary,
     content_markdown: `# ${item.title}\n\n${item.summary}\n\n## Overview\n\nGujarat Secondary and Higher Secondary Education Board (GSEB) syllabus requires structured preparation and regular practice.\n\n### Key Preparation Tips\n- Consistent revision of formulas and blueprints.\n- Regular solving of previous years' board papers.\n- Proper time distribution during examinations.`,
+    content_rich: null,
     cover_image_r2_key: null,
     read_time: item.readTime,
     status: 'published',
@@ -182,9 +184,9 @@ export async function createBlogPost(db: D1Database, dto: CreateBlogPostDTO): Pr
   const result = await db.prepare(`
     INSERT INTO blog_posts (
       slug, title_english, title_gujarati, category, category_id,
-      class_id, summary, content_markdown, thumbnail_url, read_time,
+      class_id, summary, content_markdown, content_rich, thumbnail_url, read_time,
       status, published_at, display_order, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `).bind(
     dto.slug,
     dto.title_english,
@@ -194,6 +196,7 @@ export async function createBlogPost(db: D1Database, dto: CreateBlogPostDTO): Pr
     dto.class_id || null,
     dto.summary,
     dto.content_markdown || null,
+    dto.content_rich || null,
     dto.thumbnail_url || null,
     dto.read_time || '5 min read',
     dto.status || 'published',
@@ -218,6 +221,7 @@ export async function updateBlogPost(db: D1Database, dto: UpdateBlogPostDTO): Pr
       class_id = ?,
       summary = ?,
       content_markdown = ?,
+      content_rich = ?,
       thumbnail_url = ?,
       read_time = ?,
       status = ?,
@@ -234,6 +238,7 @@ export async function updateBlogPost(db: D1Database, dto: UpdateBlogPostDTO): Pr
     dto.class_id || null,
     dto.summary,
     dto.content_markdown || null,
+    dto.content_rich || null,
     dto.thumbnail_url || null,
     dto.read_time || '5 min read',
     dto.status || 'published',

@@ -14,6 +14,7 @@ import {
   getCategories
 } from '../../../lib/blog';
 import type { BlogPostRecord } from '../../../db/schema';
+import BlogRichEditor from '../../../components/BlogRichEditor.astro';
 import { getAdminSession, SESSION_COOKIE_NAME } from '../../../lib/auth';
 import type { SessionUser } from '../../../lib/auth';
 
@@ -67,6 +68,7 @@ if (Astro.request.method === 'POST') {
       const class_id = parseInt(formData.get('class_id')?.toString() || '0', 10) || null;
       const summary = formData.get('summary')?.toString().trim();
       const content_markdown = formData.get('content_markdown')?.toString().trim() || null;
+      const content_rich = formData.get('content_rich')?.toString().trim() || null;
       const thumbnail_url = formData.get('thumbnail_url')?.toString().trim() || null;
       const read_time = formData.get('read_time')?.toString().trim() || '5 min read';
       const published_at = formData.get('published_at')?.toString().trim() || new Date().toISOString().split('T')[0];
@@ -90,6 +92,7 @@ if (Astro.request.method === 'POST') {
         class_id,
         summary,
         content_markdown,
+        content_rich,
         thumbnail_url,
         read_time,
         published_at,
@@ -113,6 +116,7 @@ if (Astro.request.method === 'POST') {
       const class_id = parseInt(formData.get('class_id')?.toString() || '0', 10) || null;
       const summary = formData.get('summary')?.toString().trim();
       const content_markdown = formData.get('content_markdown')?.toString().trim() || null;
+      const content_rich = formData.get('content_rich')?.toString().trim() || null;
       const thumbnail_url = formData.get('thumbnail_url')?.toString().trim() || null;
       const read_time = formData.get('read_time')?.toString().trim() || '5 min read';
       const published_at = formData.get('published_at')?.toString().trim() || null;
@@ -137,6 +141,7 @@ if (Astro.request.method === 'POST') {
         class_id,
         summary,
         content_markdown,
+        content_rich,
         thumbnail_url,
         read_time,
         published_at,
@@ -350,15 +355,11 @@ const draftCount = adminPosts.filter(p => p.status === 'draft').length;
             </div>
 
             <div class="form-group">
-              <label for="content_markdown">Full Article Content (Markdown Supported)</label>
-              <textarea 
-                id="content_markdown" 
-                name="content_markdown" 
-                rows="10" 
-                placeholder="Write your article using headings (#, ##, ###), bold text (**text**), and bullet points (- list item)..." 
-                class="form-control font-mono"
-              >{editItem ? (editItem.content_markdown || '') : ''}</textarea>
-              <span class="field-hint">Supports `# Heading 1`, `## Heading 2`, `### Heading 3`, `**bold**`, and `- bullet points`.</span>
+              <label>Full Article Content (Visual Rich Text & Mathematics) *</label>
+              <BlogRichEditor
+                initialRichContent={editItem ? editItem.content_rich : null}
+                initialMarkdown={editItem ? editItem.content_markdown : null}
+              />
             </div>
 
             <div class="form-row-3">
