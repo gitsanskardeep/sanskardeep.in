@@ -4,15 +4,8 @@ export const prerender = false; // Admin SSR route
 import Layout from '../../../layouts/Layout.astro';
 import { 
   getAllAdminDownloads, 
-  getDownloadById,
-  createDownloadRecord, 
-  updateDownloadRecord,
   toggleDownloadStatus, 
-  deleteDownloadRecord,
-  getClasses,
-  getCategories,
-  getSubjects,
-  getOrCreateSubject
+  deleteDownloadRecord
 } from '../../../lib/downloads';
 import type { DownloadRecord } from '../../../db/schema';
 import { getAdminSession, SESSION_COOKIE_NAME } from '../../../lib/auth';
@@ -26,12 +19,11 @@ try {
   db = (env as Record<string, unknown>).DB as import('@cloudflare/workers-types').D1Database | undefined;
   sessionKV = (env as Record<string, unknown>).SESSION as import('@cloudflare/workers-types').KVNamespace | undefined;
 } catch {
-  // Local dev fallback — cloudflare:workers not available outside Workers runtime
   db = undefined;
   sessionKV = undefined;
 }
 
-// Session verification (defense in depth alongside middleware)
+// Session verification
 const sessionToken = Astro.cookies.get(SESSION_COOKIE_NAME)?.value;
 let currentUser: SessionUser | null = Astro.locals.user || null;
 
@@ -43,14 +35,12 @@ if (!currentUser) {
   return Astro.redirect('/admin/login?err=' + encodeURIComponent('Please sign in to access the Downloads Manager.'));
 }
 
-// Handle query params for Post-Redirect-Get messages and edit mode
+// Handle query params for Post-Redirect-Get messages
 const url = new URL(Astro.request.url);
 const formMessage = url.searchParams.get('msg') || '';
 const formError = url.searchParams.get('err') || '';
-const editIdParam = url.searchParams.get('edit');
-const editId = editIdParam ? parseInt(editIdParam, 10) : null;
 
-// Handle Admin Form Actions (POST)
+// Handle Admin Actions (POST: toggle_status, delete)
 if (Astro.request.method === 'POST') {
   try {
     const formData = await Astro.request.formData();
@@ -60,96 +50,13 @@ if (Astro.request.method === 'POST') {
       return Astro.redirect('/admin/downloads?err=' + encodeURIComponent('Database connection is currently unavailable.'));
     }
 
-    if (action === 'create') {
-      const title = formData.get('title')?.toString().trim();
-      const class_id = parseInt(formData.get('class_id')?.toString() || '0', 10) || null;
-      const category_id = parseInt(formData.get('category_id')?.toString() || '0', 10) || null;
-      const subject_name = formData.get('subject_name')?.toString().trim() || '';
-      const description = formData.get('description')?.toString().trim() || null;
-      const external_url = formData.get('external_url')?.toString().trim();
-      const download_url = formData.get('download_url')?.toString().trim() || null;
-      const thumbnail_url = formData.get('thumbnail_url')?.toString().trim() || null;
-      const status = (formData.get('status')?.toString() === 'draft') ? 'draft' : 'published';
-      const display_order = parseInt(formData.get('display_order')?.toString() || '0', 10) || 0;
-
-      if (!title || !external_url) {
-        return Astro.redirect('/admin/downloads?err=' + encodeURIComponent('Title and External PDF URL are required.'));
-      }
-
-      let subject_id: number | null = null;
-      if (subject_name) {
-        subject_id = await getOrCreateSubject(db, subject_name, class_id);
-      }
-
-      const ok = await createDownloadRecord(db, {
-        title,
-        class_id,
-        subject_id,
-        category_id,
-        description,
-        external_url,
-        download_url,
-        thumbnail_url,
-        status,
-        display_order
-      });
-
-      if (ok) {
-        return Astro.redirect('/admin/downloads?msg=' + encodeURIComponent(`Download "${title}" was created successfully!`));
-      } else {
-        return Astro.redirect('/admin/downloads?err=' + encodeURIComponent('Failed to insert download record into D1.'));
-      }
-
-    } else if (action === 'update') {
-      const id = parseInt(formData.get('id')?.toString() || '0', 10);
-      const title = formData.get('title')?.toString().trim();
-      const class_id = parseInt(formData.get('class_id')?.toString() || '0', 10) || null;
-      const category_id = parseInt(formData.get('category_id')?.toString() || '0', 10) || null;
-      const subject_name = formData.get('subject_name')?.toString().trim() || '';
-      const description = formData.get('description')?.toString().trim() || null;
-      const external_url = formData.get('external_url')?.toString().trim();
-      const download_url = formData.get('download_url')?.toString().trim() || null;
-      const thumbnail_url = formData.get('thumbnail_url')?.toString().trim() || null;
-      const status = (formData.get('status')?.toString() === 'draft') ? 'draft' : 'published';
-      const display_order = parseInt(formData.get('display_order')?.toString() || '0', 10) || 0;
-
-      if (!id || !title || !external_url) {
-        return Astro.redirect('/admin/downloads?err=' + encodeURIComponent('ID, Title, and External PDF URL are required.'));
-      }
-
-      let subject_id: number | null = null;
-      if (subject_name) {
-        subject_id = await getOrCreateSubject(db, subject_name, class_id);
-      }
-
-      const ok = await updateDownloadRecord(db, {
-        id,
-        title,
-        class_id,
-        subject_id,
-        category_id,
-        description,
-        external_url,
-        download_url,
-        thumbnail_url,
-        status,
-        display_order
-      });
-
-      if (ok) {
-        return Astro.redirect('/admin/downloads?msg=' + encodeURIComponent(`Download #${id} was updated successfully!`));
-      } else {
-        return Astro.redirect('/admin/downloads?err=' + encodeURIComponent('Failed to update download record in D1.'));
-      }
-
-    } else if (action === 'toggle_status') {
+    if (action === 'toggle_status') {
       const id = parseInt(formData.get('id')?.toString() || '0', 10);
       const newStatus = formData.get('new_status')?.toString() === 'draft' ? 'draft' : 'published';
       if (id > 0) {
         await toggleDownloadStatus(db, id, newStatus);
         return Astro.redirect('/admin/downloads?msg=' + encodeURIComponent(`Status for #${id} changed to ${newStatus}.`));
       }
-
     } else if (action === 'delete') {
       const id = parseInt(formData.get('id')?.toString() || '0', 10);
       if (id > 0) {
@@ -162,20 +69,8 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-// Fetch all downloads, classes, categories, and subjects
+// Fetch all downloads
 const adminDownloads = await getAllAdminDownloads(db);
-const classesList = await getClasses(db);
-const categoriesList = await getCategories(db);
-const subjectsList = await getSubjects(db);
-
-// If edit mode is requested, find the record
-let editItem: DownloadRecord | null = null;
-if (editId && db) {
-  editItem = await getDownloadById(db, editId);
-}
-if (!editItem && editId) {
-  editItem = adminDownloads.find(d => d.id === editId) || null;
-}
 
 const totalCount = adminDownloads.length;
 const publishedCount = adminDownloads.filter(d => d.status === 'published').length;
@@ -196,6 +91,9 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
           <p class="admin-sub">Add external document links (Google Drive), manage categories, and set publication statuses.</p>
         </div>
         <div class="admin-nav-actions">
+          <a href="/admin/downloads/new" class="btn btn-primary btn-new">
+            <span>+ Add New PDF Resource</span>
+          </a>
           <a href="/downloads" target="_blank" class="btn btn-outline btn-sm">
             <span>View Public /downloads</span>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -240,266 +138,157 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
       {formMessage && <div class="alert alert-success">{formMessage}</div>}
       {formError && <div class="alert alert-error">{formError}</div>}
 
-      <div class="admin-grid">
-        <!-- Add / Edit Download Record Form -->
-        <div class="card admin-form-card" id="adminForm">
-          <div class="form-header-row">
-            <div>
-              <h2 class="form-title">{editItem ? `Edit Download (#${editItem.id})` : 'Add New PDF Resource'}</h2>
-              <p class="form-desc">
-                {editItem ? 'Update metadata, Google Drive link, or status for this resource.' : 'Provide Google Drive or external URL to publish a PDF resource.'}
-              </p>
-            </div>
-            {editItem && (
-              <a href="/admin/downloads" class="btn btn-sm btn-outline cancel-btn">
-                ✕ Cancel Edit
-              </a>
-            )}
+      <!-- Downloads List Card (Full Width) -->
+      <div class="card admin-list-card">
+        <div class="list-header-row">
+          <div>
+            <h2 class="list-title">Current Download Records ({totalCount})</h2>
+            <p class="list-hint">Manage documents, update Google Drive links, or toggle status.</p>
           </div>
-
-          <form method="POST" class="admin-form">
-            <input type="hidden" name="_action" value={editItem ? 'update' : 'create'} />
-            {editItem && <input type="hidden" name="id" value={editItem.id} />}
-
-            <div class="form-group">
-              <label for="title">Title *</label>
-              <input 
-                type="text" 
-                id="title" 
-                name="title" 
-                required 
-                placeholder="e.g. Std 10 Maths Board Model Paper Set 2026" 
-                value={editItem ? editItem.title : ''} 
-                class="form-control" 
+          <div class="list-controls">
+            <div class="search-box">
+              <input
+                type="text"
+                id="downloadSearchInput"
+                placeholder="Search by title, class, subject, category..."
+                class="search-input"
               />
             </div>
-
-            <div class="form-row-3">
-              <div class="form-group">
-                <label for="class_id">Target Class / Standard</label>
-                <select id="class_id" name="class_id" class="form-control">
-                  <option value="">General / All Classes</option>
-                  {classesList.map(c => (
-                    <option value={c.id} selected={editItem && editItem.class_id === c.id}>{c.title_english}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="subject_name">Subject</label>
-                <input 
-                  type="text" 
-                  id="subject_name" 
-                  name="subject_name" 
-                  list="subjectsListSuggestions" 
-                  placeholder="e.g. Mathematics, Science" 
-                  value={editItem ? (editItem.subjectName || '') : ''} 
-                  class="form-control" 
-                />
-                <datalist id="subjectsListSuggestions">
-                  <option value="Mathematics" />
-                  <option value="Science" />
-                  <option value="Social Science" />
-                  <option value="Physics" />
-                  <option value="Chemistry" />
-                  <option value="Biology" />
-                  <option value="Accountancy" />
-                  <option value="Statistics" />
-                  <option value="Economics" />
-                  <option value="English" />
-                  <option value="Gujarati" />
-                  <option value="Sanskrit" />
-                  <option value="Computer Studies" />
-                  {subjectsList.map(s => (
-                    <option value={s.name_english} />
-                  ))}
-                </datalist>
-              </div>
-
-              <div class="form-group">
-                <label for="category_id">Category</label>
-                <select id="category_id" name="category_id" class="form-control">
-                  {categoriesList.map(cat => (
-                    <option value={cat.id} selected={editItem ? editItem.category_id === cat.id : cat.id === 4}>
-                      {cat.title_english}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="description">Description</label>
-              <textarea 
-                id="description" 
-                name="description" 
-                rows="3" 
-                placeholder="Brief summary of what this PDF document contains..." 
-                class="form-control"
-              >{editItem ? (editItem.description || '') : ''}</textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="external_url">External Document URL (Google Drive / Cloud Link) *</label>
-              <input 
-                type="url" 
-                id="external_url" 
-                name="external_url" 
-                required 
-                placeholder="https://drive.google.com/file/d/..." 
-                value={editItem ? editItem.external_url : ''} 
-                class="form-control" 
-              />
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label for="download_url">Direct Download URL (Optional)</label>
-                <input 
-                  type="url" 
-                  id="download_url" 
-                  name="download_url" 
-                  placeholder="https://..." 
-                  value={editItem ? (editItem.download_url || '') : ''} 
-                  class="form-control" 
-                />
-              </div>
-
-              <div class="form-group">
-                <label for="thumbnail_url">Thumbnail / Icon Image URL (Optional)</label>
-                <input 
-                  type="url" 
-                  id="thumbnail_url" 
-                  name="thumbnail_url" 
-                  placeholder="https://..." 
-                  value={editItem ? (editItem.thumbnail_url || '') : ''} 
-                  class="form-control" 
-                />
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label for="status">Publication Status</label>
-                <select id="status" name="status" class="form-control">
-                  <option value="published" selected={editItem ? editItem.status === 'published' : true}>Published (Public)</option>
-                  <option value="draft" selected={editItem ? editItem.status === 'draft' : false}>Draft (Hidden)</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="display_order">Display Order Index</label>
-                <input 
-                  type="number" 
-                  id="display_order" 
-                  name="display_order" 
-                  value={editItem ? editItem.display_order : 1} 
-                  min="0" 
-                  class="form-control" 
-                />
-              </div>
-            </div>
-
-            <div class="form-actions-bar">
-              <button type="submit" class="btn btn-primary w-full">
-                <span>{editItem ? 'Update Download Record' : 'Save & Publish Download Record'}</span>
-              </button>
-              {editItem && (
-                <a href="/admin/downloads" class="btn btn-outline">
-                  Cancel
-                </a>
-              )}
-            </div>
-          </form>
+            <select id="statusFilter" class="filter-select">
+              <option value="all">All Statuses</option>
+              <option value="published">Published Only</option>
+              <option value="draft">Drafts Only</option>
+            </select>
+            <a href="/admin/downloads/new" class="btn btn-primary btn-sm">
+              <span>+ Add PDF</span>
+            </a>
+          </div>
         </div>
 
-        <!-- Downloads List Table -->
-        <div class="card admin-list-card">
-          <div class="list-header">
-            <h2 class="form-title">Current Download Records ({totalCount})</h2>
-            <span class="list-hint">Click Edit to modify or toggle status instantly.</span>
-          </div>
-
-          <div class="table-responsive">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th style="width: 60px;">#</th>
-                  <th>Class & Category</th>
-                  <th>Title & Links</th>
-                  <th>Status</th>
-                  <th style="text-align: right;">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {adminDownloads.map(item => (
-                  <tr class={editItem && editItem.id === item.id ? 'row-editing' : ''}>
-                    <td class="order-cell">
-                      <span class="id-badge">#{item.id}</span>
-                      <span class="order-num" title="Display Order">Ord: {item.display_order}</span>
-                    </td>
-                    <td>
-                      <span class="badge badge-accent">{item.className || 'General'}</span>
-                      {item.subjectName && <span class="badge badge-primary sub-badge">{item.subjectName}</span>}
-                      <div class="sub-meta">{item.categoryName || 'PDF Document'}</div>
-                    </td>
-                    <td>
-                      <div class="item-title">{item.title}</div>
-                      <a href={item.external_url} target="_blank" rel="noopener noreferrer" class="link-url">
-                        <span>Open Link</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                          <polyline points="15 3 21 3 21 9"></polyline>
-                          <line x1="10" y1="14" x2="21" y2="3"></line>
-                        </svg>
+        <div class="table-responsive">
+          <table class="admin-table" id="downloadsTable">
+            <thead>
+              <tr>
+                <th style="width: 60px;">#</th>
+                <th>Class & Category</th>
+                <th>Title & Links</th>
+                <th>Status</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {adminDownloads.map(item => (
+                <tr class="download-row" data-title={item.title.toLowerCase()} data-class={(item.className || '').toLowerCase()} data-subject={(item.subjectName || '').toLowerCase()} data-category={(item.categoryName || '').toLowerCase()} data-status={item.status}>
+                  <td class="order-cell">
+                    <span class="id-badge">#{item.id}</span>
+                    <span class="order-num" title="Display Order">Ord: {item.display_order}</span>
+                  </td>
+                  <td>
+                    <span class="badge badge-accent">{item.className || 'General'}</span>
+                    {item.subjectName && <span class="badge badge-primary sub-badge">{item.subjectName}</span>}
+                    <div class="sub-meta">{item.categoryName || 'PDF Document'}</div>
+                  </td>
+                  <td>
+                    <div class="item-title">{item.title}</div>
+                    <a href={item.external_url} target="_blank" rel="noopener noreferrer" class="link-url">
+                      <span>Open Link</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                      </svg>
+                    </a>
+                  </td>
+                  <td>
+                    <span class={`status-badge ${item.status === 'published' ? 'status-published' : 'status-draft'}`}>
+                      {item.status}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="action-buttons">
+                      <a href={`/admin/downloads/edit/${item.id}`} class="btn btn-sm btn-outline action-edit">
+                        Edit
                       </a>
-                    </td>
-                    <td>
-                      <span class={`status-badge ${item.status === 'published' ? 'status-published' : 'status-draft'}`}>
-                        {item.status}
-                      </span>
-                    </td>
-                    <td>
-                      <div class="action-buttons">
-                        <a href={`/admin/downloads?edit=${item.id}#adminForm`} class="btn btn-sm btn-outline action-edit">
-                          Edit
-                        </a>
 
-                        <form method="POST" style="display:inline;">
-                          <input type="hidden" name="_action" value="toggle_status" />
-                          <input type="hidden" name="id" value={item.id} />
-                          <input type="hidden" name="new_status" value={item.status === 'published' ? 'draft' : 'published'} />
-                          <button type="submit" class="btn btn-sm btn-outline" title={item.status === 'published' ? 'Hide from public' : 'Publish to live portal'}>
-                            {item.status === 'published' ? 'Unpublish' : 'Publish'}
-                          </button>
-                        </form>
+                      <form method="POST" style="display:inline;">
+                        <input type="hidden" name="_action" value="toggle_status" />
+                        <input type="hidden" name="id" value={item.id} />
+                        <input type="hidden" name="new_status" value={item.status === 'published' ? 'draft' : 'published'} />
+                        <button type="submit" class="btn btn-sm btn-outline" title={item.status === 'published' ? 'Hide from public' : 'Publish to live portal'}>
+                          {item.status === 'published' ? 'Unpublish' : 'Publish'}
+                        </button>
+                      </form>
 
-                        <form method="POST" style="display:inline;" onsubmit="return confirm(`Delete download #${item.id} (${item.title})?`);">
-                          <input type="hidden" name="_action" value="delete" />
-                          <input type="hidden" name="id" value={item.id} />
-                          <button type="submit" class="btn btn-sm btn-danger" title="Permanently delete this download">
-                            Delete
-                          </button>
-                        </form>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <form method="POST" style="display:inline;" onsubmit="return confirm(`Delete download #${item.id} (${item.title})?`);">
+                        <input type="hidden" name="_action" value="delete" />
+                        <input type="hidden" name="id" value={item.id} />
+                        <button type="submit" class="btn btn-sm btn-danger" title="Permanently delete this download">
+                          Delete
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {adminDownloads.length === 0 && (
+          <div class="empty-materials">
+            <p>No downloads found in the database.</p>
+            <p class="empty-sub">
+              <a href="/admin/downloads/new" class="btn btn-primary btn-sm mt-2">Add First PDF Resource</a>
+            </p>
           </div>
+        )}
 
-          {adminDownloads.length === 0 && (
-            <div class="empty-downloads">
-              <p>No download records found in database.</p>
-              <p class="empty-sub">Use the form to add the first PDF resource.</p>
-            </div>
-          )}
+        <div id="noSearchResults" class="empty-materials" style="display: none;">
+          <p>No download records match your search filter.</p>
         </div>
       </div>
     </div>
   </div>
 </Layout>
+
+<script>
+  // Client-side quick search and status filtering
+  const searchInput = document.getElementById('downloadSearchInput') as HTMLInputElement;
+  const statusFilter = document.getElementById('statusFilter') as HTMLSelectElement;
+  const rows = document.querySelectorAll('.download-row') as NodeListOf<HTMLTableRowElement>;
+  const noResults = document.getElementById('noSearchResults');
+
+  function filterDownloads() {
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const status = statusFilter ? statusFilter.value : 'all';
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const title = row.dataset.title || '';
+      const classTag = row.dataset.class || '';
+      const subject = row.dataset.subject || '';
+      const category = row.dataset.category || '';
+      const rowStatus = row.dataset.status || '';
+
+      const matchesQuery = !query || title.includes(query) || classTag.includes(query) || subject.includes(query) || category.includes(query);
+      const matchesStatus = status === 'all' || rowStatus === status;
+
+      if (matchesQuery && matchesStatus) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    if (noResults) {
+      noResults.style.display = (visibleCount === 0 && rows.length > 0) ? 'block' : 'none';
+    }
+  }
+
+  searchInput?.addEventListener('input', filterDownloads);
+  statusFilter?.addEventListener('change', filterDownloads);
+</script>
 
 <style>
   .admin-page {
@@ -542,6 +331,12 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
     display: flex;
     align-items: center;
     gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-new {
+    padding: 0.55rem 1.15rem;
+    font-weight: 700;
   }
 
   .btn-logout {
@@ -630,157 +425,155 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
     border: 1px solid #fca5a5;
   }
 
-  .admin-grid {
-    display: grid;
-    grid-template-columns: 0.95fr 1.05fr;
-    gap: 2rem;
+  /* List Card (Full Width) */
+  .admin-list-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
   }
 
-  .form-header-row {
+  .list-header-row {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: 1rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
   }
 
-  .cancel-btn {
-    white-space: nowrap;
-    color: var(--color-text-medium);
-  }
-
-  .form-title {
-    font-size: 1.25rem;
+  .list-title {
+    font-size: 1.35rem;
     color: var(--color-primary-navy);
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.25rem;
   }
 
-  .form-desc {
+  .list-hint {
     font-size: 0.85rem;
     color: var(--color-text-muted);
-    margin-bottom: 1.25rem;
   }
 
-  .admin-form {
+  .list-controls {
     display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
   }
 
-  .form-row {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+  .search-box {
+    min-width: 260px;
   }
 
-  .form-row-3 {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-  }
-
-  .form-group label {
-    font-size: 0.825rem;
-    font-weight: 700;
-    color: var(--color-text-medium);
-  }
-
-  .form-control {
-    padding: 0.6rem 0.75rem;
+  .search-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
-    font-family: inherit;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     background-color: #ffffff;
   }
 
-  .form-control:focus {
+  .search-input:focus {
     outline: none;
     border-color: var(--color-primary-blue);
   }
 
-  .form-actions-bar {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
+  .filter-select {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background-color: #ffffff;
   }
 
-  /* Table Header & Styling */
-  .list-header {
-    margin-bottom: 1rem;
+  .filter-select:focus {
+    outline: none;
+    border-color: var(--color-primary-blue);
   }
 
-  .list-hint {
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-  }
-
+  /* Table styling */
   .table-responsive {
     overflow-x: auto;
-    margin-top: 0.5rem;
   }
 
   .admin-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-size: 0.875rem;
   }
 
-  .admin-table th, .admin-table td {
-    padding: 0.75rem;
+  .admin-table th,
+  .admin-table td {
+    padding: 0.85rem 0.75rem;
     text-align: left;
     border-bottom: 1px solid var(--color-border);
-    vertical-align: middle;
+    vertical-align: top;
   }
 
   .admin-table th {
-    background-color: var(--color-bg-main);
-    color: var(--color-text-muted);
+    background-color: #f8fafc;
+    color: var(--color-text-medium);
     font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
   }
 
-  .row-editing {
-    background-color: #fefce8 !important;
+  .admin-table tr:hover {
+    background-color: #f8fafc;
   }
 
   .order-cell {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.25rem;
   }
 
   .id-badge {
     font-weight: 800;
-    color: var(--color-primary-navy);
-    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
   }
 
   .order-num {
-    font-size: 0.72rem;
+    font-size: 0.75rem;
+    color: var(--color-primary-blue);
+    font-weight: 600;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 9999px;
+  }
+
+  .badge-primary {
+    background-color: #eff6ff;
+    color: var(--color-primary-blue);
+  }
+
+  .badge-accent {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+
+  .sub-badge {
+    margin-left: 0.35rem;
+  }
+
+  .sub-meta {
+    font-size: 0.75rem;
     color: var(--color-text-muted);
+    margin-top: 0.25rem;
   }
 
   .item-title {
     font-weight: 700;
     color: var(--color-primary-navy);
-    line-height: 1.35;
-    margin-bottom: 0.25rem;
-  }
-
-  .sub-meta {
-    font-size: 0.72rem;
-    color: var(--color-text-muted);
-    margin-top: 0.25rem;
-  }
-
-  .sub-badge {
-    margin-left: 0.25rem;
+    margin-bottom: 0.2rem;
   }
 
   .link-url {
@@ -789,20 +582,20 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
     gap: 0.25rem;
     font-size: 0.75rem;
     color: var(--color-primary-blue);
+    text-decoration: none;
     font-weight: 600;
-    text-decoration: underline;
   }
 
   .link-url:hover {
-    color: var(--color-primary-navy);
+    text-decoration: underline;
   }
 
   .status-badge {
     display: inline-block;
-    padding: 0.2rem 0.5rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.72rem;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
     font-weight: 700;
+    border-radius: 9999px;
     text-transform: uppercase;
   }
 
@@ -818,33 +611,21 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
 
   .action-buttons {
     display: flex;
-    gap: 0.4rem;
     justify-content: flex-end;
-    align-items: center;
-  }
-
-  .action-edit {
-    color: var(--color-primary-navy);
-    border-color: var(--color-border);
-  }
-
-  .action-edit:hover {
-    background-color: var(--color-primary-navy);
-    color: #ffffff;
+    gap: 0.4rem;
   }
 
   .btn-danger {
-    background-color: #fee2e2;
+    background-color: #ffffff;
     color: #dc2626;
-    border: 1px solid #fca5a5;
+    border-color: #fca5a5;
   }
 
   .btn-danger:hover {
-    background-color: #dc2626;
-    color: #ffffff;
+    background-color: #fee2e2;
   }
 
-  .empty-downloads {
+  .empty-materials {
     text-align: center;
     padding: 3rem 1rem;
     color: var(--color-text-muted);
@@ -852,24 +633,24 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
 
   .empty-sub {
     font-size: 0.85rem;
-    margin-top: 0.35rem;
+    margin-top: 0.5rem;
   }
 
-  .w-full {
-    width: 100%;
-  }
-
-  @media (max-width: 1100px) {
-    .admin-grid {
-      grid-template-columns: 1fr;
+  @media (max-width: 840px) {
+    .list-header-row {
+      flex-direction: column;
+      align-items: stretch;
     }
-
-    .form-row-3 {
-      grid-template-columns: 1fr;
+    .list-controls {
+      flex-direction: column;
+      align-items: stretch;
     }
-
     .stats-row {
       grid-template-columns: 1fr;
+    }
+    .admin-header {
+      flex-direction: column;
+      align-items: stretch;
     }
   }
 </style>

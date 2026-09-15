@@ -1,0 +1,289 @@
+---
+import type { StudyMaterialRecord } from '../../db/schema';
+
+interface Props {
+  editItem?: StudyMaterialRecord | null;
+  classesList?: any[];
+  categoriesList?: any[];
+  subjectsList?: any[];
+  cancelUrl?: string;
+}
+
+const { 
+  editItem = null, 
+  classesList = [], 
+  categoriesList = [], 
+  subjectsList = [], 
+  cancelUrl = '/admin/study-materials' 
+} = Astro.props;
+
+const isEdit = Boolean(editItem && editItem.id);
+---
+
+<form method="POST" class="admin-form">
+  <input type="hidden" name="_action" value={isEdit ? 'update' : 'create'} />
+  {isEdit && <input type="hidden" name="id" value={editItem!.id} />}
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="title_english">Title (English) *</label>
+      <input 
+        type="text" 
+        id="title_english" 
+        name="title_english" 
+        required 
+        placeholder="e.g. Chemical Reactions and Equations - Complete Revision" 
+        value={editItem ? editItem.title_english : ''} 
+        class="form-control" 
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="title_gujarati">Title (Gujarati - Optional)</label>
+      <input 
+        type="text" 
+        id="title_gujarati" 
+        name="title_gujarati" 
+        placeholder="e.g. રાસાયણિક પ્રક્રિયાઓ અને સમીકરણો" 
+        value={editItem ? (editItem.title_gujarati || '') : ''} 
+        class="form-control gujarati-text" 
+      />
+    </div>
+  </div>
+
+  <div class="form-row-3">
+    <div class="form-group">
+      <label for="class_id">Target Class / Standard</label>
+      <select id="class_id" name="class_id" class="form-control">
+        <option value="">General / All Classes</option>
+        {classesList.map(c => (
+          <option value={c.id} selected={editItem ? editItem.class_id === c.id : false}>
+            {c.title_english}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="subject_name">Subject</label>
+      <input 
+        type="text" 
+        id="subject_name" 
+        name="subject_name" 
+        list="subjectsListSuggestions" 
+        placeholder="e.g. Science, Mathematics" 
+        value={editItem ? (editItem.subjectName || '') : ''} 
+        class="form-control" 
+      />
+      <datalist id="subjectsListSuggestions">
+        <option value="Mathematics" />
+        <option value="Science" />
+        <option value="Social Science" />
+        <option value="Physics" />
+        <option value="Chemistry" />
+        <option value="Biology" />
+        <option value="Accountancy" />
+        <option value="Statistics" />
+        <option value="Economics" />
+        <option value="English" />
+        <option value="Gujarati" />
+        <option value="Sanskrit" />
+        <option value="Computer Studies" />
+        {subjectsList.map(s => (
+          <option value={s.name_english} />
+        ))}
+      </datalist>
+    </div>
+
+    <div class="form-group">
+      <label for="category_id">Category</label>
+      <select id="category_id" name="category_id" class="form-control">
+        {categoriesList.map(cat => (
+          <option value={cat.id} selected={editItem ? editItem.category_id === cat.id : cat.id === 1}>
+            {cat.title_english}
+          </option>
+        ))}
+      </select>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="chapter">Chapter / Topic</label>
+      <input 
+        type="text" 
+        id="chapter" 
+        name="chapter" 
+        placeholder="e.g. Chapter 1: Chemical Reactions" 
+        value={editItem ? (editItem.chapter || '') : ''} 
+        class="form-control" 
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="display_order">Display Order Index</label>
+      <input 
+        type="number" 
+        id="display_order" 
+        name="display_order" 
+        value={editItem ? editItem.display_order : 1} 
+        min="0" 
+        class="form-control" 
+      />
+      <span class="field-hint">Lower numbers appear first on public list.</span>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="description">Description</label>
+    <textarea 
+      id="description" 
+      name="description" 
+      rows="3" 
+      placeholder="Comprehensive summary of concepts, GSEB blueprint alignment, or key takeaways..." 
+      class="form-control"
+    >{editItem ? (editItem.description || '') : ''}</textarea>
+  </div>
+
+  <div class="form-group">
+    <label for="external_url">External Resource URL (Google Drive / PDF / Doc Link)</label>
+    <input 
+      type="url" 
+      id="external_url" 
+      name="external_url" 
+      placeholder="https://drive.google.com/file/d/..." 
+      value={editItem ? (editItem.external_url || '') : ''} 
+      class="form-control" 
+    />
+    <span class="field-hint">Paste full public view link from Google Drive, OneDrive, or official GSEB portal.</span>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="download_url">Direct Download URL (Optional)</label>
+      <input 
+        type="url" 
+        id="download_url" 
+        name="download_url" 
+        placeholder="https://..." 
+        value={editItem ? (editItem.download_url || '') : ''} 
+        class="form-control" 
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="thumbnail_url">Thumbnail Image URL (Optional)</label>
+      <input 
+        type="url" 
+        id="thumbnail_url" 
+        name="thumbnail_url" 
+        placeholder="https://..." 
+        value={editItem ? (editItem.thumbnail_url || '') : ''} 
+        class="form-control" 
+      />
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="status">Publication Status</label>
+      <select id="status" name="status" class="form-control">
+        <option value="published" selected={editItem ? editItem.status === 'published' : true}>Published (Public)</option>
+        <option value="draft" selected={editItem ? editItem.status === 'draft' : false}>Draft (Hidden)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-actions-bar">
+    <button type="submit" class="btn btn-primary submit-btn">
+      <span>{isEdit ? 'Update Study Material' : 'Save & Publish Study Material'}</span>
+    </button>
+    <a href={cancelUrl} class="btn btn-outline cancel-btn">
+      Cancel
+    </a>
+  </div>
+</form>
+
+<style>
+  .admin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+
+  .form-row-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-text-medium);
+  }
+
+  .form-control {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background-color: #ffffff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: var(--color-primary-blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  .field-hint {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  .form-actions-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .submit-btn {
+    min-width: 220px;
+  }
+
+  .cancel-btn {
+    color: var(--color-text-medium);
+  }
+
+  @media (max-width: 768px) {
+    .form-row, .form-row-3 {
+      grid-template-columns: 1fr;
+    }
+    .form-actions-bar {
+      flex-direction: column-reverse;
+      align-items: stretch;
+    }
+    .submit-btn, .cancel-btn {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>

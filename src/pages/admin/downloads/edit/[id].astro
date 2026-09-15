@@ -1,0 +1,225 @@
+---
+export const prerender = false; // Dynamic Admin SSR route
+
+import Layout from '../../../../layouts/Layout.astro';
+import { 
+  getDownloadById,
+  updateDownloadRecord, 
+  getClasses, 
+  getCategories, 
+  getSubjects,
+  getOrCreateSubject
+} from '../../../../lib/downloads';
+import DownloadForm from '../../../../components/admin/DownloadForm.astro';
+import { getAdminSession, SESSION_COOKIE_NAME } from '../../../../lib/auth';
+import type { SessionUser } from '../../../../lib/auth';
+
+// Cloudflare v14 bindings
+let db: import('@cloudflare/workers-types').D1Database | undefined;
+let sessionKV: import('@cloudflare/workers-types').KVNamespace | undefined;
+try {
+  const { env } = await import('cloudflare:workers');
+  db = (env as Record<string, unknown>).DB as import('@cloudflare/workers-types').D1Database | undefined;
+  sessionKV = (env as Record<string, unknown>).SESSION as import('@cloudflare/workers-types').KVNamespace | undefined;
+} catch {
+  db = undefined;
+  sessionKV = undefined;
+}
+
+// Session verification
+const sessionToken = Astro.cookies.get(SESSION_COOKIE_NAME)?.value;
+let currentUser: SessionUser | null = Astro.locals.user || null;
+
+if (!currentUser && sessionToken && sessionKV) {
+  currentUser = await getAdminSession(sessionKV, sessionToken);
+}
+
+if (!currentUser) {
+  return Astro.redirect('/admin/login?err=' + encodeURIComponent('Please sign in to access the Downloads Manager.'));
+}
+
+const { id } = Astro.params;
+const recordId = parseInt(id || '0', 10);
+
+if (!recordId) {
+  return Astro.redirect('/admin/downloads?err=' + encodeURIComponent('Invalid download ID.'));
+}
+
+let formError = '';
+
+// Handle Update Form Submission (POST)
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get('_action')?.toString();
+
+    if (!db) {
+      formError = 'Database connection is currently unavailable.';
+    } else if (action === 'update') {
+      const targetId = parseInt(formData.get('id')?.toString() || '0', 10) || recordId;
+      const title = formData.get('title')?.toString().trim();
+      const class_id = parseInt(formData.get('class_id')?.toString() || '0', 10) || null;
+      const category_id = parseInt(formData.get('category_id')?.toString() || '0', 10) || null;
+      const subject_name = formData.get('subject_name')?.toString().trim() || '';
+      const description = formData.get('description')?.toString().trim() || null;
+      const external_url = formData.get('external_url')?.toString().trim();
+      const download_url = formData.get('download_url')?.toString().trim() || null;
+      const thumbnail_url = formData.get('thumbnail_url')?.toString().trim() || null;
+      const status = (formData.get('status')?.toString() === 'draft') ? 'draft' : 'published';
+      const display_order = parseInt(formData.get('display_order')?.toString() || '0', 10) || 0;
+
+      if (!targetId || !title || !external_url) {
+        formError = 'ID, Title, and External PDF URL are required.';
+      } else {
+        let subject_id: number | null = null;
+        if (subject_name) {
+          subject_id = await getOrCreateSubject(db, subject_name, class_id);
+        }
+
+        const ok = await updateDownloadRecord(db, {
+          id: targetId,
+          title,
+          class_id,
+          subject_id,
+          category_id,
+          description,
+          external_url,
+          download_url,
+          thumbnail_url,
+          status,
+          display_order
+        });
+
+        if (ok) {
+          return Astro.redirect('/admin/downloads?msg=' + encodeURIComponent(`Download #${targetId} was updated successfully!`));
+        } else {
+          formError = 'Failed to update download record in D1.';
+        }
+      }
+    }
+  } catch (err: any) {
+    formError = err?.message || 'An unexpected error occurred.';
+  }
+}
+
+// Fetch record to edit
+let editItem = null;
+if (db) {
+  editItem = await getDownloadById(db, recordId);
+}
+
+if (!editItem) {
+  return Astro.redirect('/admin/downloads?err=' + encodeURIComponent(`Download #${recordId} was not found.`));
+}
+
+// Fetch dropdowns
+const classesList = await getClasses(db);
+const categoriesList = await getCategories(db);
+const subjectsList = await getSubjects(db);
+---
+
+<Layout title={`Edit PDF Resource: ${editItem.title} - Admin Downloads`} description="Edit download record settings.">
+  <div class="admin-page">
+    <div class="container container-form">
+      <!-- Navigation & Header -->
+      <div class="form-page-header">
+        <a href="/admin/downloads" class="btn btn-outline btn-sm back-btn">
+          <span>&larr; Back to Downloads</span>
+        </a>
+        <div>
+          <div class="meta-tag-id">Download #{editItem.id}</div>
+          <h1 class="page-title">Edit PDF Resource: {editItem.title}</h1>
+          <p class="page-sub">Update metadata, Google Drive link, or publication status for this resource.</p>
+        </div>
+      </div>
+
+      {formError && <div class="alert alert-error">{formError}</div>}
+
+      <!-- Form Card -->
+      <div class="card form-card">
+        <DownloadForm 
+          editItem={editItem}
+          classesList={classesList}
+          categoriesList={categoriesList}
+          subjectsList={subjectsList}
+          cancelUrl="/admin/downloads"
+        />
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .admin-page {
+    padding: 3rem 0 4rem;
+    background-color: var(--color-bg-main);
+  }
+
+  .container-form {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .form-page-header {
+    margin-bottom: 2rem;
+  }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 1.25rem;
+    color: var(--color-text-medium);
+  }
+
+  .meta-tag-id {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-primary-blue);
+    background-color: #eff6ff;
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
+    border: 1px solid #bfdbfe;
+  }
+
+  .page-title {
+    font-size: 1.85rem;
+    color: var(--color-primary-navy);
+    margin-bottom: 0.35rem;
+  }
+
+  .page-sub {
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+  }
+
+  .alert {
+    padding: 0.85rem 1.25rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .alert-error {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+  }
+
+  .form-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 2rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  @media (max-width: 768px) {
+    .form-card {
+      padding: 1.25rem;
+    }
+  }
+</style>
