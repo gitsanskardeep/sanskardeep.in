@@ -610,19 +610,30 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
     cursor: pointer;
   }
 
-  /* Modal Backdrop & Dialog */
+  /* Modal Backdrop & Dialog - Viewport fixed, non-shifting overlay */
+  :global(.math-modal-backdrop),
   .math-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    z-index: 99999 !important;
     background-color: rgba(15, 23, 42, 0.65);
     backdrop-filter: blur(2px);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 1rem;
+    box-sizing: border-box;
+    transform: none !important;
+    transition: none !important;
   }
 
+  :global(.math-modal-dialog),
   .math-modal-dialog {
     background-color: #ffffff;
     border-radius: var(--radius-md);
@@ -630,10 +641,15 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
     max-width: 680px;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25);
     border: 1px solid var(--color-border);
     display: flex;
     flex-direction: column;
+    margin: auto !important;
+    position: relative;
+    pointer-events: auto;
+    transform: none !important;
+    transition: none !important;
   }
 
   .modal-header {
@@ -1112,6 +1128,10 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
   }
 
   // --- Math Modal Logic ---
+  if (mathModal && mathModal.parentElement !== document.body) {
+    document.body.appendChild(mathModal);
+  }
+
   document.getElementById('tbMathBtn')?.addEventListener('click', () => {
     openMathModal();
   });
@@ -1120,7 +1140,12 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
   btnCancelMath?.addEventListener('click', closeMathModal);
 
   function openMathModal() {
-    if (mathModal) mathModal.style.display = 'flex';
+    if (mathModal) {
+      if (mathModal.parentElement !== document.body) {
+        document.body.appendChild(mathModal);
+      }
+      mathModal.style.display = 'flex';
+    }
     if (mathFormulaInput) {
       mathFormulaInput.focus();
       renderLiveKaTeX(mathFormulaInput.value);
