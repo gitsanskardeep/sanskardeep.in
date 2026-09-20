@@ -129,6 +129,9 @@ function renderRichContent(htmlContent: string | null): string {
     }
   );
 
+  // Ensure empty paragraphs (e.g. from pressing Enter on empty lines) don't collapse to 0 height
+  output = output.replace(/<p>(\s*|<br\s*\/?>)?<\/p>/gi, '<p><br /></p>');
+
   return output;
 }
 
@@ -337,9 +340,10 @@ const renderedContent = (post.content_rich && post.content_rich.trim().length > 
   }
 
   .article-prose {
-    font-size: 1.025rem;
-    line-height: 1.75;
+    font-size: 1.05rem;
+    line-height: 1.7;
     color: var(--color-text-dark);
+    word-break: break-word;
   }
 
   .article-prose h1, 
@@ -347,9 +351,10 @@ const renderedContent = (post.content_rich && post.content_rich.trim().length > 
   .article-prose h3,
   .article-prose h4 {
     color: var(--color-primary-navy);
-    margin-top: 2rem;
-    margin-bottom: 0.75rem;
+    margin-top: 1.85rem;
+    margin-bottom: 0.65rem;
     font-weight: 800;
+    line-height: 1.35;
   }
 
   .article-prose h1 { font-size: 1.75rem; }
@@ -364,21 +369,59 @@ const renderedContent = (post.content_rich && post.content_rich.trim().length > 
   }
 
   .article-prose p {
-    margin-bottom: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 0.85em;
+    line-height: inherit;
   }
 
+  /* Empty paragraphs created by pressing Enter */
+  .article-prose p:empty,
+  .article-prose p > br:only-child {
+    min-height: 1.5em;
+    margin-bottom: 0.85em;
+  }
+
+  .article-prose p:empty::before {
+    content: '\00a0';
+    display: inline-block;
+  }
+
+  /* Explicit line spacing classes/attributes */
+  .article-prose [data-line-spacing="1.0"] { line-height: 1.0 !important; }
+  .article-prose [data-line-spacing="1.15"] { line-height: 1.15 !important; }
+  .article-prose [data-line-spacing="1.5"] { line-height: 1.5 !important; }
+  .article-prose [data-line-spacing="2.0"] { line-height: 2.0 !important; }
+
+  /* Explicit paragraph spacing classes/attributes */
+  .article-prose [data-paragraph-spacing="compact"] { margin-bottom: 0.35em !important; }
+  .article-prose [data-paragraph-spacing="normal"] { margin-bottom: 0.75em !important; }
+  .article-prose [data-paragraph-spacing="relaxed"] { margin-bottom: 1.1em !important; }
+  .article-prose [data-paragraph-spacing="wide"] { margin-bottom: 1.5em !important; }
+
   .article-prose ul {
-    margin: 1rem 0 1.5rem 1.75rem;
+    margin: 0.75rem 0 1.25rem 1.75rem;
     list-style-type: disc;
   }
 
   .article-prose ol {
-    margin: 1rem 0 1.5rem 1.75rem;
+    margin: 0.75rem 0 1.25rem 1.75rem;
     list-style-type: decimal;
   }
 
   .article-prose li {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
+    line-height: 1.6;
+  }
+
+  .article-prose li p {
+    margin-top: 0 !important;
+    margin-bottom: 0.25rem !important;
+    line-height: inherit;
+    min-height: 0;
+  }
+
+  .article-prose li p:last-child {
+    margin-bottom: 0 !important;
   }
 
   .article-prose blockquote {

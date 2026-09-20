@@ -57,6 +57,24 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
         </select>
       </div>
 
+      <!-- Spacing Controls Group -->
+      <div class="toolbar-group">
+        <select class="toolbar-select" id="tbLineSpacingSelect" title="Line Spacing (લાઇન સ્પેસિંગ)" aria-label="Line Spacing">
+          <option value="">Line: Default</option>
+          <option value="1.0">Line: 1.0</option>
+          <option value="1.15">Line: 1.15</option>
+          <option value="1.5">Line: 1.5</option>
+          <option value="2.0">Line: 2.0</option>
+        </select>
+        <select class="toolbar-select" id="tbParagraphSpacingSelect" title="Paragraph Spacing (ફકરા સ્પેસિંગ)" aria-label="Paragraph Spacing">
+          <option value="">Para: Default</option>
+          <option value="compact">Para: Compact</option>
+          <option value="normal">Para: Normal</option>
+          <option value="relaxed">Para: Relaxed</option>
+          <option value="wide">Para: Wide</option>
+        </select>
+      </div>
+
       <!-- Basic Formatting -->
       <div class="toolbar-group">
         <button type="button" class="tb-btn" id="tbBold" title="Bold (Ctrl+B)"><strong>B</strong></button>
@@ -531,8 +549,8 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
     border-bottom-right-radius: var(--radius-sm);
     background-color: #ffffff;
     color: var(--color-text-dark);
-    font-size: 0.95rem;
-    line-height: 1.65;
+    font-size: 1.025rem;
+    line-height: 1.7;
   }
 
   .editor-surface:focus {
@@ -546,8 +564,26 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
   }
 
   :global(.editor-surface .ProseMirror p) {
-    margin-bottom: 0.85rem;
+    margin-top: 0;
+    margin-bottom: 0.85em;
+    min-height: 1.25em;
+    line-height: inherit;
   }
+
+  :global(.editor-surface .ProseMirror p:empty) {
+    min-height: 1.5em;
+  }
+
+  /* Spacing attributes inside editor */
+  :global(.editor-surface .ProseMirror [data-line-spacing="1.0"]) { line-height: 1.0 !important; }
+  :global(.editor-surface .ProseMirror [data-line-spacing="1.15"]) { line-height: 1.15 !important; }
+  :global(.editor-surface .ProseMirror [data-line-spacing="1.5"]) { line-height: 1.5 !important; }
+  :global(.editor-surface .ProseMirror [data-line-spacing="2.0"]) { line-height: 2.0 !important; }
+
+  :global(.editor-surface .ProseMirror [data-paragraph-spacing="compact"]) { margin-bottom: 0.35em !important; }
+  :global(.editor-surface .ProseMirror [data-paragraph-spacing="normal"]) { margin-bottom: 0.75em !important; }
+  :global(.editor-surface .ProseMirror [data-paragraph-spacing="relaxed"]) { margin-bottom: 1.1em !important; }
+  :global(.editor-surface .ProseMirror [data-paragraph-spacing="wide"]) { margin-bottom: 1.5em !important; }
 
   :global(.editor-surface .ProseMirror h1),
   :global(.editor-surface .ProseMirror h2),
@@ -555,13 +591,30 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
   :global(.editor-surface .ProseMirror h4) {
     color: var(--color-primary-navy);
     font-weight: 800;
-    margin-top: 1.25rem;
-    margin-bottom: 0.5rem;
+    margin-top: 1.85rem;
+    margin-bottom: 0.65rem;
+    line-height: 1.35;
   }
 
   :global(.editor-surface .ProseMirror ul),
   :global(.editor-surface .ProseMirror ol) {
-    margin: 0.5rem 0 1rem 1.5rem;
+    margin: 0.75rem 0 1.25rem 1.5rem;
+  }
+
+  :global(.editor-surface .ProseMirror li) {
+    margin-bottom: 0.35rem;
+    line-height: 1.6;
+  }
+
+  :global(.editor-surface .ProseMirror li p) {
+    margin-top: 0 !important;
+    margin-bottom: 0.25rem !important;
+    line-height: inherit;
+    min-height: 0;
+  }
+
+  :global(.editor-surface .ProseMirror li p:last-child) {
+    margin-bottom: 0 !important;
   }
 
   :global(.editor-surface .ProseMirror blockquote) {
@@ -884,7 +937,7 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
 </style>
 
 <script>
-  import { Editor } from '@tiptap/core';
+  import { Editor, Extension } from '@tiptap/core';
   import { StarterKit } from '@tiptap/starter-kit';
   import { Underline } from '@tiptap/extension-underline';
   import { Link } from '@tiptap/extension-link';
@@ -899,6 +952,131 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
   import { Mathematics } from '@tiptap/extension-mathematics';
   import katex from 'katex';
   import DOMPurify from 'dompurify';
+
+  // --- Custom Tiptap Extension: Line Spacing ---
+  const LineHeight = Extension.create({
+    name: 'lineHeight',
+
+    addOptions() {
+      return {
+        types: ['paragraph', 'heading'],
+        lineHeights: ['1.0', '1.15', '1.5', '2.0'],
+        defaultLineHeight: null,
+      };
+    },
+
+    addGlobalAttributes() {
+      return [
+        {
+          types: this.options.types,
+          attributes: {
+            lineHeight: {
+              default: this.options.defaultLineHeight,
+              parseHTML: element => {
+                const dataAttr = element.getAttribute('data-line-spacing');
+                if (dataAttr && this.options.lineHeights.includes(dataAttr)) return dataAttr;
+                const styleLh = element.style.lineHeight;
+                if (styleLh && this.options.lineHeights.includes(styleLh)) return styleLh;
+                return this.options.defaultLineHeight;
+              },
+              renderHTML: attributes => {
+                if (!attributes.lineHeight) {
+                  return {};
+                }
+                return {
+                  'data-line-spacing': attributes.lineHeight,
+                  style: `line-height: ${attributes.lineHeight}`
+                };
+              }
+            }
+          }
+        }
+      ];
+    },
+
+    addCommands() {
+      return {
+        setLineHeight: (lineHeight: string) => ({ commands }: any) => {
+          if (!this.options.lineHeights.includes(lineHeight)) {
+            return false;
+          }
+          return this.options.types
+            .map(type => commands.updateAttributes(type, { lineHeight }))
+            .some(response => response);
+        },
+        unsetLineHeight: () => ({ commands }: any) => {
+          return this.options.types
+            .map(type => commands.resetAttributes(type, 'lineHeight'))
+            .some(response => response);
+        }
+      };
+    }
+  });
+
+  // --- Custom Tiptap Extension: Paragraph Spacing ---
+  const ParagraphSpacing = Extension.create({
+    name: 'paragraphSpacing',
+
+    addOptions() {
+      return {
+        types: ['paragraph', 'heading'],
+        spacingOptions: ['compact', 'normal', 'relaxed', 'wide'],
+        defaultSpacing: null,
+        marginMap: {
+          compact: '0.35em',
+          normal: '0.75em',
+          relaxed: '1.1em',
+          wide: '1.5em'
+        } as Record<string, string>
+      };
+    },
+
+    addGlobalAttributes() {
+      return [
+        {
+          types: this.options.types,
+          attributes: {
+            paragraphSpacing: {
+              default: this.options.defaultSpacing,
+              parseHTML: element => {
+                const dataAttr = element.getAttribute('data-paragraph-spacing');
+                if (dataAttr && this.options.spacingOptions.includes(dataAttr)) return dataAttr;
+                return this.options.defaultSpacing;
+              },
+              renderHTML: attributes => {
+                if (!attributes.paragraphSpacing) {
+                  return {};
+                }
+                const mb = this.options.marginMap[attributes.paragraphSpacing] || attributes.paragraphSpacing;
+                return {
+                  'data-paragraph-spacing': attributes.paragraphSpacing,
+                  style: `margin-bottom: ${mb}`
+                };
+              }
+            }
+          }
+        }
+      ];
+    },
+
+    addCommands() {
+      return {
+        setParagraphSpacing: (paragraphSpacing: string) => ({ commands }: any) => {
+          if (!this.options.spacingOptions.includes(paragraphSpacing)) {
+            return false;
+          }
+          return this.options.types
+            .map(type => commands.updateAttributes(type, { paragraphSpacing }))
+            .some(response => response);
+        },
+        unsetParagraphSpacing: () => ({ commands }: any) => {
+          return this.options.types
+            .map(type => commands.resetAttributes(type, 'paragraphSpacing'))
+            .some(response => response);
+        }
+      };
+    }
+  });
 
   // Elements
   const root = document.getElementById('blogRichEditorRoot');
@@ -958,7 +1136,9 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
         katexOptions: {
           throwOnError: false
         }
-      })
+      }),
+      LineHeight,
+      ParagraphSpacing
     ],
     content: initialContent,
     onUpdate({ editor }) {
@@ -1006,10 +1186,10 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
   function syncContent() {
     if (currentMode === 'visual') {
       const rawHtml = editor.getHTML();
-      // Sanitize with DOMPurify while preserving data-type and data-latex for math
+      // Sanitize with DOMPurify while preserving data-type, data-latex, and spacing attributes
       const cleanHtml = DOMPurify.sanitize(rawHtml, {
         ADD_TAGS: ['span', 'div', 'hr', 'mark', 'u', 's'],
-        ADD_ATTR: ['data-type', 'data-latex', 'target', 'rel', 'style', 'colspan', 'rowspan']
+        ADD_ATTR: ['data-type', 'data-latex', 'target', 'rel', 'style', 'colspan', 'rowspan', 'data-line-spacing', 'data-paragraph-spacing']
       });
       if (richInput) richInput.value = cleanHtml;
     }
@@ -1030,6 +1210,26 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
     else if (val === 'h2') editor.chain().focus().toggleHeading({ level: 2 }).run();
     else if (val === 'h3') editor.chain().focus().toggleHeading({ level: 3 }).run();
     else if (val === 'h4') editor.chain().focus().toggleHeading({ level: 4 }).run();
+  });
+
+  const tbLineSpacingSelect = document.getElementById('tbLineSpacingSelect') as HTMLSelectElement;
+  tbLineSpacingSelect?.addEventListener('change', (e) => {
+    const val = (e.target as HTMLSelectElement).value;
+    if (val) {
+      (editor.chain().focus() as any).setLineHeight(val).run();
+    } else {
+      (editor.chain().focus() as any).unsetLineHeight().run();
+    }
+  });
+
+  const tbParagraphSpacingSelect = document.getElementById('tbParagraphSpacingSelect') as HTMLSelectElement;
+  tbParagraphSpacingSelect?.addEventListener('change', (e) => {
+    const val = (e.target as HTMLSelectElement).value;
+    if (val) {
+      (editor.chain().focus() as any).setParagraphSpacing(val).run();
+    } else {
+      (editor.chain().focus() as any).unsetParagraphSpacing().run();
+    }
   });
 
   document.getElementById('tbBold')?.addEventListener('click', () => editor.chain().focus().toggleBold().run());
@@ -1116,6 +1316,16 @@ const hasMarkdownOnly = Boolean(initialMarkdown && !initialRichContent);
       else if (editor.isActive('heading', { level: 3 })) tbHeadingSelect.value = 'h3';
       else if (editor.isActive('heading', { level: 4 })) tbHeadingSelect.value = 'h4';
       else tbHeadingSelect.value = 'p';
+    }
+
+    if (tbLineSpacingSelect) {
+      const activeLh = editor.getAttributes('paragraph')?.lineHeight || editor.getAttributes('heading')?.lineHeight || '';
+      tbLineSpacingSelect.value = activeLh;
+    }
+
+    if (tbParagraphSpacingSelect) {
+      const activePs = editor.getAttributes('paragraph')?.paragraphSpacing || editor.getAttributes('heading')?.paragraphSpacing || '';
+      tbParagraphSpacingSelect.value = activePs;
     }
   }
 
