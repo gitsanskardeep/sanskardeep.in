@@ -3,11 +3,12 @@ export const prerender = false; // Admin SSR route
 
 import Layout from '../../../layouts/Layout.astro';
 import { 
-  getAllAdminDownloads, 
-  toggleDownloadStatus, 
-  deleteDownloadRecord
-} from '../../../lib/downloads';
-import type { DownloadRecord } from '../../../db/schema';
+  getAllAdminTests, 
+  toggleTestStatus, 
+  deleteTest,
+  TEST_TYPES
+} from '../../../lib/tests';
+import type { TestRecord } from '../../../db/schema';
 import { getAdminSession, SESSION_COOKIE_NAME } from '../../../lib/auth';
 import type { SessionUser } from '../../../lib/auth';
 
@@ -32,7 +33,7 @@ if (!currentUser && sessionToken && sessionKV) {
 }
 
 if (!currentUser) {
-  return Astro.redirect('/admin/login?err=' + encodeURIComponent('Please sign in to access the Downloads Manager.'));
+  return Astro.redirect('/admin/login?err=' + encodeURIComponent('Please sign in to access the Tests Manager.'));
 }
 
 // Handle query params for Post-Redirect-Get messages
@@ -47,37 +48,37 @@ if (Astro.request.method === 'POST') {
     const action = formData.get('_action')?.toString();
 
     if (!db) {
-      return Astro.redirect('/admin/downloads?err=' + encodeURIComponent('Database connection is currently unavailable.'));
+      return Astro.redirect('/admin/tests?err=' + encodeURIComponent('Database connection is currently unavailable.'));
     }
 
     if (action === 'toggle_status') {
       const id = parseInt(formData.get('id')?.toString() || '0', 10);
       const newStatus = formData.get('new_status')?.toString() === 'draft' ? 'draft' : 'published';
       if (id > 0) {
-        await toggleDownloadStatus(db, id, newStatus);
-        return Astro.redirect('/admin/downloads?msg=' + encodeURIComponent(`Status for #${id} changed to ${newStatus}.`));
+        await toggleTestStatus(db, id, newStatus);
+        return Astro.redirect('/admin/tests?msg=' + encodeURIComponent(`Status for Test #${id} changed to ${newStatus}.`));
       }
     } else if (action === 'delete') {
       const id = parseInt(formData.get('id')?.toString() || '0', 10);
       if (id > 0) {
-        await deleteDownloadRecord(db, id);
-        return Astro.redirect('/admin/downloads?msg=' + encodeURIComponent(`Download #${id} was deleted.`));
+        await deleteTest(db, id);
+        return Astro.redirect('/admin/tests?msg=' + encodeURIComponent(`Test #${id} was successfully deleted.`));
       }
     }
   } catch (err: any) {
-    return Astro.redirect('/admin/downloads?err=' + encodeURIComponent(err?.message || 'An unexpected error occurred.'));
+    return Astro.redirect('/admin/tests?err=' + encodeURIComponent(err?.message || 'An unexpected error occurred.'));
   }
 }
 
-// Fetch all downloads
-const adminDownloads = await getAllAdminDownloads(db);
+// Fetch all tests
+const adminTests = await getAllAdminTests(db);
 
-const totalCount = adminDownloads.length;
-const publishedCount = adminDownloads.filter(d => d.status === 'published').length;
-const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
+const totalCount = adminTests.length;
+const publishedCount = adminTests.filter(t => t.status === 'published').length;
+const draftCount = adminTests.filter(t => t.status === 'draft').length;
 ---
 
-<Layout title="Admin Downloads Manager - Sanskar Deep" description="Manage PDF downloads, Google Drive links, and educational materials.">
+<Layout title="Admin Tests & Practice Manager - Sanskar Deep" description="Manage GSEB practice tests, unit tests, model question papers, and external PDF resources.">
   <div class="admin-page">
     <div class="container">
       <!-- Admin Header Bar -->
@@ -87,29 +88,29 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
             <span class="status-indicator"></span>
             <span>Signed in as <strong>{currentUser.fullName}</strong> ({currentUser.email})</span>
           </div>
-          <h1 class="admin-title">Downloads & PDF Manager</h1>
-          <p class="admin-sub">Add external document links (Google Drive), manage categories, and set publication statuses.</p>
+          <h1 class="admin-title">Tests & Practice Manager</h1>
+          <p class="admin-sub">Manage unit test papers, board blueprints, external Google Drive PDFs, and publication statuses.</p>
         </div>
         <div class="admin-nav-actions">
-          <a href="/admin/downloads/new" class="btn btn-primary btn-new">
-            <span>+ Add New PDF Resource</span>
+          <a href="/admin/tests/new" class="btn btn-primary btn-new">
+            <span>+ Add New Test Paper</span>
           </a>
-          <a href="/downloads" target="_blank" class="btn btn-outline btn-sm">
-            <span>View Public /downloads</span>
+          <a href="/tests" target="_blank" class="btn btn-outline btn-sm">
+            <span>View Public /tests</span>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
               <polyline points="15 3 21 3 21 9"></polyline>
               <line x1="10" y1="14" x2="21" y2="3"></line>
             </svg>
           </a>
+          <a href="/admin/downloads" class="btn btn-outline btn-sm">
+            <span>Downloads</span>
+          </a>
           <a href="/admin/study-materials" class="btn btn-outline btn-sm">
             <span>Study Materials</span>
           </a>
           <a href="/admin/blog" class="btn btn-outline btn-sm">
             <span>Blog</span>
-          </a>
-          <a href="/admin/tests" class="btn btn-outline btn-sm">
-            <span>Tests</span>
           </a>
           <a href="/admin/logout" class="btn btn-outline btn-sm btn-logout" title="Securely Sign Out">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -125,7 +126,7 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
       <!-- Stats Summary -->
       <div class="stats-row">
         <div class="stat-card">
-          <span class="stat-label">Total Documents</span>
+          <span class="stat-label">Total Tests</span>
           <span class="stat-value">{totalCount}</span>
         </div>
         <div class="stat-card stat-published">
@@ -141,19 +142,19 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
       {formMessage && <div class="alert alert-success">{formMessage}</div>}
       {formError && <div class="alert alert-error">{formError}</div>}
 
-      <!-- Downloads List Card (Full Width) -->
+      <!-- Tests List Card (Full Width) -->
       <div class="card admin-list-card">
         <div class="list-header-row">
           <div>
-            <h2 class="list-title">Current Download Records ({totalCount})</h2>
-            <p class="list-hint">Manage documents, update Google Drive links, or toggle status.</p>
+            <h2 class="list-title">Current Test Papers ({totalCount})</h2>
+            <p class="list-hint">Search, filter, edit test papers, toggle visibility, or update links.</p>
           </div>
           <div class="list-controls">
             <div class="search-box">
               <input
                 type="text"
-                id="downloadSearchInput"
-                placeholder="Search by title, class, subject, category..."
+                id="testSearchInput"
+                placeholder="Search by title, subject, chapter, type..."
                 class="search-input"
               />
             </div>
@@ -162,26 +163,41 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
               <option value="published">Published Only</option>
               <option value="draft">Drafts Only</option>
             </select>
-            <a href="/admin/downloads/new" class="btn btn-primary btn-sm">
-              <span>+ Add PDF</span>
+            <select id="typeFilter" class="filter-select">
+              <option value="all">All Types</option>
+              {TEST_TYPES.map(t => (
+                <option value={t.toLowerCase()}>{t}</option>
+              ))}
+            </select>
+            <a href="/admin/tests/new" class="btn btn-primary btn-sm">
+              <span>+ Add Test</span>
             </a>
           </div>
         </div>
 
         <div class="table-responsive">
-          <table class="admin-table" id="downloadsTable">
+          <table class="admin-table" id="testsTable">
             <thead>
               <tr>
                 <th style="width: 60px;">#</th>
-                <th>Class & Category</th>
-                <th>Title & Links</th>
+                <th>Class & Subject</th>
+                <th>Test Details</th>
+                <th>Type & Weightage</th>
                 <th>Status</th>
                 <th style="text-align: right;">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {adminDownloads.map(item => (
-                <tr class="download-row" data-title={item.title.toLowerCase()} data-class={(item.className || '').toLowerCase()} data-subject={(item.subjectName || '').toLowerCase()} data-category={(item.categoryName || '').toLowerCase()} data-status={item.status}>
+              {adminTests.map(item => (
+                <tr 
+                  class="test-row" 
+                  data-title={item.title.toLowerCase()} 
+                  data-class={(item.className || '').toLowerCase()} 
+                  data-subject={(item.subjectName || '').toLowerCase()} 
+                  data-chapter={(item.chapter || '').toLowerCase()} 
+                  data-type={(item.test_type || '').toLowerCase()} 
+                  data-status={item.status}
+                >
                   <td class="order-cell">
                     <span class="id-badge">#{item.id}</span>
                     <span class="order-num" title="Display Order">Ord: {item.display_order}</span>
@@ -189,18 +205,32 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
                   <td>
                     <span class="badge badge-accent">{item.className || 'General'}</span>
                     {item.subjectName && <span class="badge badge-primary sub-badge">{item.subjectName}</span>}
-                    <div class="sub-meta">{item.categoryName || 'PDF Document'}</div>
+                    {item.chapter && <div class="sub-meta">{item.chapter}</div>}
                   </td>
                   <td>
                     <div class="item-title">{item.title}</div>
-                    <a href={item.external_url} target="_blank" rel="noopener noreferrer" class="link-url">
-                      <span>Open Link</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                        <polyline points="15 3 21 3 21 9"></polyline>
-                        <line x1="10" y1="14" x2="21" y2="3"></line>
-                      </svg>
-                    </a>
+                    <div class="meta-row-tags">
+                      <span class="tag-pill">{item.medium || 'Gujarati'} Medium</span>
+                      <span class="tag-pill">{item.difficulty || 'Medium'}</span>
+                      {item.external_url ? (
+                        <a href={item.external_url} target="_blank" rel="noopener noreferrer" class="link-url">
+                          <span>View PDF</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                          </svg>
+                        </a>
+                      ) : (
+                        <span class="no-link-badge">No PDF Link</span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div class="type-pill">{item.test_type}</div>
+                    <div class="weightage-info">
+                      <span>{item.total_marks} Marks</span> • <span>{item.duration_minutes} Mins</span>
+                    </div>
                   </td>
                   <td>
                     <span class={`status-badge ${item.status === 'published' ? 'status-published' : 'status-draft'}`}>
@@ -209,7 +239,7 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
                   </td>
                   <td>
                     <div class="action-buttons">
-                      <a href={`/admin/downloads/edit/${item.id}`} class="btn btn-sm btn-outline action-edit">
+                      <a href={`/admin/tests/edit/${item.id}`} class="btn btn-sm btn-outline action-edit">
                         Edit
                       </a>
 
@@ -217,15 +247,19 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
                         <input type="hidden" name="_action" value="toggle_status" />
                         <input type="hidden" name="id" value={item.id} />
                         <input type="hidden" name="new_status" value={item.status === 'published' ? 'draft' : 'published'} />
-                        <button type="submit" class="btn btn-sm btn-outline" title={item.status === 'published' ? 'Hide from public' : 'Publish to live portal'}>
+                        <button 
+                          type="submit" 
+                          class="btn btn-sm btn-outline" 
+                          title={item.status === 'published' ? 'Hide from public' : 'Publish to live portal'}
+                        >
                           {item.status === 'published' ? 'Unpublish' : 'Publish'}
                         </button>
                       </form>
 
-                      <form method="POST" style="display:inline;" onsubmit="return confirm(`Delete download #${item.id} (${item.title})?`);">
+                      <form method="POST" style="display:inline;" onsubmit={`return confirm('Are you sure you want to permanently delete Test #${item.id} (${item.title.replace(/'/g, "\\'")})?');`}>
                         <input type="hidden" name="_action" value="delete" />
                         <input type="hidden" name="id" value={item.id} />
-                        <button type="submit" class="btn btn-sm btn-danger" title="Permanently delete this download">
+                        <button type="submit" class="btn btn-sm btn-danger" title="Permanently delete this test">
                           Delete
                         </button>
                       </form>
@@ -237,17 +271,17 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
           </table>
         </div>
 
-        {adminDownloads.length === 0 && (
+        {adminTests.length === 0 && (
           <div class="empty-materials">
-            <p>No downloads found in the database.</p>
+            <p>No tests or practice papers found in the database.</p>
             <p class="empty-sub">
-              <a href="/admin/downloads/new" class="btn btn-primary btn-sm mt-2">Add First PDF Resource</a>
+              <a href="/admin/tests/new" class="btn btn-primary btn-sm mt-2">Add First Test Paper</a>
             </p>
           </div>
         )}
 
         <div id="noSearchResults" class="empty-materials" style="display: none;">
-          <p>No download records match your search filter.</p>
+          <p>No test papers match your search and filter criteria.</p>
         </div>
       </div>
     </div>
@@ -255,119 +289,122 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
 </Layout>
 
 <script>
-  // Client-side quick search and status filtering
-  const searchInput = document.getElementById('downloadSearchInput') as HTMLInputElement;
-  const statusFilter = document.getElementById('statusFilter') as HTMLSelectElement;
-  const rows = document.querySelectorAll('.download-row') as NodeListOf<HTMLTableRowElement>;
-  const noResults = document.getElementById('noSearchResults');
+  function setupTestFilters() {
+    const searchInput = document.getElementById('testSearchInput') as HTMLInputElement | null;
+    const statusFilter = document.getElementById('statusFilter') as HTMLSelectElement | null;
+    const typeFilter = document.getElementById('typeFilter') as HTMLSelectElement | null;
+    const rows = document.querySelectorAll<HTMLTableRowElement>('.test-row');
+    const noResults = document.getElementById('noSearchResults');
 
-  function filterDownloads() {
-    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
-    const status = statusFilter ? statusFilter.value : 'all';
-    let visibleCount = 0;
+    function applyFilter() {
+      const q = (searchInput?.value || '').toLowerCase().trim();
+      const status = statusFilter?.value || 'all';
+      const type = typeFilter?.value || 'all';
+      let visibleCount = 0;
 
-    rows.forEach(row => {
-      const title = row.dataset.title || '';
-      const classTag = row.dataset.class || '';
-      const subject = row.dataset.subject || '';
-      const category = row.dataset.category || '';
-      const rowStatus = row.dataset.status || '';
+      rows.forEach(row => {
+        const title = row.getAttribute('data-title') || '';
+        const cls = row.getAttribute('data-class') || '';
+        const sub = row.getAttribute('data-subject') || '';
+        const ch = row.getAttribute('data-chapter') || '';
+        const rowType = row.getAttribute('data-type') || '';
+        const rowStatus = row.getAttribute('data-status') || '';
 
-      const matchesQuery = !query || title.includes(query) || classTag.includes(query) || subject.includes(query) || category.includes(query);
-      const matchesStatus = status === 'all' || rowStatus === status;
+        const matchesQuery = !q || title.includes(q) || cls.includes(q) || sub.includes(q) || ch.includes(q) || rowType.includes(q);
+        const matchesStatus = status === 'all' || rowStatus === status;
+        const matchesType = type === 'all' || rowType === type;
 
-      if (matchesQuery && matchesStatus) {
-        row.style.display = '';
-        visibleCount++;
-      } else {
-        row.style.display = 'none';
+        if (matchesQuery && matchesStatus && matchesType) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      if (noResults) {
+        noResults.style.display = (visibleCount === 0 && rows.length > 0) ? 'block' : 'none';
       }
-    });
-
-    if (noResults) {
-      noResults.style.display = (visibleCount === 0 && rows.length > 0) ? 'block' : 'none';
     }
+
+    searchInput?.addEventListener('input', applyFilter);
+    statusFilter?.addEventListener('change', applyFilter);
+    typeFilter?.addEventListener('change', applyFilter);
   }
 
-  searchInput?.addEventListener('input', filterDownloads);
-  statusFilter?.addEventListener('change', filterDownloads);
+  document.addEventListener('DOMContentLoaded', setupTestFilters);
+  setupTestFilters();
 </script>
 
 <style>
   .admin-page {
-    padding: 3rem 0;
-    background-color: var(--color-bg-main);
+    padding: 2.5rem 0 4rem;
+    background-color: #f8fafc;
+    min-height: calc(100vh - 80px);
   }
 
   .admin-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    gap: 1.5rem;
     margin-bottom: 2rem;
-    gap: 1rem;
-    flex-wrap: wrap;
   }
 
   .user-meta-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    background-color: #f1f5f9;
+    padding: 0.25rem 0.65rem;
+    background: #e2e8f0;
+    border-radius: 9999px;
+    font-size: 0.75rem;
     color: var(--color-text-medium);
-    padding: 0.35rem 0.75rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    border-radius: var(--radius-sm);
     margin-bottom: 0.5rem;
-    border: 1px solid var(--color-border);
   }
 
   .status-indicator {
     width: 8px;
     height: 8px;
+    background-color: #10b981;
     border-radius: 50%;
-    background-color: #22c55e;
-    display: inline-block;
-  }
-
-  .admin-nav-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-  }
-
-  .btn-new {
-    padding: 0.55rem 1.15rem;
-    font-weight: 700;
-  }
-
-  .btn-logout {
-    color: #dc2626;
-    border-color: #fca5a5;
-    background-color: #ffffff;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-  }
-
-  .btn-logout:hover {
-    background-color: #fee2e2;
-    color: #b91c1c;
-    border-color: #f87171;
   }
 
   .admin-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
+    font-weight: 800;
     color: var(--color-primary-navy);
+    margin: 0 0 0.35rem;
   }
 
   .admin-sub {
     font-size: 0.95rem;
     color: var(--color-text-muted);
+    margin: 0;
   }
 
-  /* Quick Stats Row */
+  .admin-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-new {
+    font-weight: 600;
+  }
+
+  .btn-logout {
+    color: #ef4444;
+    border-color: #fca5a5;
+  }
+
+  .btn-logout:hover {
+    background-color: #fee2e2;
+    color: #b91c1c;
+  }
+
+  /* Stats Grid */
   .stats-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -376,65 +413,64 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
   }
 
   .stat-card {
-    background-color: var(--color-surface);
+    background: #ffffff;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     padding: 1.25rem;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    box-shadow: var(--shadow-sm);
+    gap: 0.35rem;
   }
 
   .stat-label {
     font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--color-text-muted);
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    color: var(--color-text-muted);
+    letter-spacing: 0.05em;
   }
 
   .stat-value {
     font-size: 1.75rem;
-    font-weight: 900;
+    font-weight: 800;
     color: var(--color-primary-navy);
   }
 
   .stat-published .stat-value {
-    color: #15803d;
+    color: #059669;
   }
 
   .stat-draft .stat-value {
-    color: #64748b;
+    color: #d97706;
   }
 
+  /* Alerts */
   .alert {
     padding: 0.85rem 1.25rem;
     border-radius: var(--radius-sm);
     margin-bottom: 1.5rem;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .alert-success {
-    background-color: #dcfce7;
-    color: #15803d;
-    border: 1px solid #bbf7d0;
+    background-color: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
   }
 
   .alert-error {
-    background-color: #fee2e2;
-    color: #b91c1c;
-    border: 1px solid #fca5a5;
+    background-color: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
   }
 
-  /* List Card (Full Width) */
+  /* Table Card */
   .admin-list-card {
-    background-color: var(--color-surface);
+    background-color: #ffffff;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     padding: 1.5rem;
-    box-shadow: var(--shadow-sm);
   }
 
   .list-header-row {
@@ -442,19 +478,21 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
     flex-wrap: wrap;
   }
 
   .list-title {
-    font-size: 1.35rem;
+    font-size: 1.2rem;
+    font-weight: 700;
     color: var(--color-primary-navy);
-    margin-bottom: 0.25rem;
+    margin: 0 0 0.25rem;
   }
 
   .list-hint {
     font-size: 0.85rem;
     color: var(--color-text-muted);
+    margin: 0;
   }
 
   .list-controls {
@@ -464,38 +502,23 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
     flex-wrap: wrap;
   }
 
-  .search-box {
-    min-width: 260px;
+  .search-input, .filter-select {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background-color: #ffffff;
+    color: var(--color-text-dark);
   }
 
   .search-input {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    background-color: #ffffff;
-  }
-
-  .search-input:focus {
-    outline: none;
-    border-color: var(--color-primary-blue);
+    width: 260px;
   }
 
   .filter-select {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    background-color: #ffffff;
+    cursor: pointer;
   }
 
-  .filter-select:focus {
-    outline: none;
-    border-color: var(--color-primary-blue);
-  }
-
-  /* Table styling */
   .table-responsive {
     overflow-x: auto;
   }
@@ -506,25 +529,23 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
     font-size: 0.875rem;
   }
 
-  .admin-table th,
-  .admin-table td {
-    padding: 0.85rem 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
-    vertical-align: top;
-  }
-
   .admin-table th {
     background-color: #f8fafc;
     color: var(--color-text-medium);
     font-weight: 700;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid var(--color-border);
   }
 
-  .admin-table tr:hover {
-    background-color: #f8fafc;
+  .admin-table td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+  }
+
+  .admin-table tbody tr:hover {
+    background-color: #fafbfc;
   }
 
   .order-cell {
@@ -534,33 +555,14 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
   }
 
   .id-badge {
-    font-weight: 800;
+    font-size: 0.8rem;
+    font-weight: 700;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
   }
 
   .order-num {
-    font-size: 0.75rem;
-    color: var(--color-primary-blue);
-    font-weight: 600;
-  }
-
-  .badge {
-    display: inline-block;
-    padding: 0.2rem 0.55rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    border-radius: 9999px;
-  }
-
-  .badge-primary {
-    background-color: #eff6ff;
-    color: var(--color-primary-blue);
-  }
-
-  .badge-accent {
-    background-color: #fef3c7;
-    color: #92400e;
+    font-size: 0.7rem;
+    color: #94a3b8;
   }
 
   .sub-badge {
@@ -574,58 +576,95 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
   }
 
   .item-title {
-    font-weight: 700;
-    color: var(--color-primary-navy);
-    margin-bottom: 0.2rem;
+    font-weight: 600;
+    color: var(--color-text-dark);
+    margin-bottom: 0.25rem;
+  }
+
+  .meta-row-tags {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.75rem;
+  }
+
+  .tag-pill {
+    background-color: #f1f5f9;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    color: #475569;
   }
 
   .link-url {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    font-size: 0.75rem;
     color: var(--color-primary-blue);
+    font-weight: 500;
     text-decoration: none;
-    font-weight: 600;
   }
 
   .link-url:hover {
     text-decoration: underline;
   }
 
+  .no-link-badge {
+    color: #94a3b8;
+    font-style: italic;
+  }
+
+  .type-pill {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-primary-navy);
+    background-color: #e0e7ff;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 0.25rem;
+  }
+
+  .weightage-info {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
   .status-badge {
     display: inline-block;
-    padding: 0.25rem 0.6rem;
-    font-size: 0.75rem;
-    font-weight: 700;
+    padding: 0.2rem 0.55rem;
     border-radius: 9999px;
-    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
   }
 
   .status-published {
-    background-color: #dcfce7;
-    color: #15803d;
+    background-color: #d1fae5;
+    color: #065f46;
   }
 
   .status-draft {
-    background-color: #f1f5f9;
-    color: #64748b;
+    background-color: #fef3c7;
+    color: #92400e;
   }
 
   .action-buttons {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     gap: 0.4rem;
   }
 
   .btn-danger {
-    background-color: #ffffff;
-    color: #dc2626;
+    color: #ef4444;
     border-color: #fca5a5;
+    background: transparent;
   }
 
   .btn-danger:hover {
     background-color: #fee2e2;
+    color: #b91c1c;
   }
 
   .empty-materials {
@@ -635,25 +674,22 @@ const draftCount = adminDownloads.filter(d => d.status === 'draft').length;
   }
 
   .empty-sub {
-    font-size: 0.85rem;
     margin-top: 0.5rem;
   }
 
-  @media (max-width: 840px) {
-    .list-header-row {
+  @media (max-width: 900px) {
+    .admin-header {
       flex-direction: column;
-      align-items: stretch;
-    }
-    .list-controls {
-      flex-direction: column;
-      align-items: stretch;
     }
     .stats-row {
       grid-template-columns: 1fr;
     }
-    .admin-header {
+    .list-header-row {
       flex-direction: column;
       align-items: stretch;
+    }
+    .search-input {
+      width: 100%;
     }
   }
 </style>

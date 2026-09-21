@@ -66,7 +66,7 @@ export const NAV_LINKS = [
   { label: "HOME", href: "/" },
   { label: "CLASSES", href: "/#classes" },
   { label: "STUDY MATERIAL", href: "/study-material" },
-  { label: "TESTS & PRACTICE", href: "/#tests" },
+  { label: "TESTS & PRACTICE", href: "/tests" },
   { label: "BLOG", href: "/blog" },
   { label: "DOWNLOADS", href: "/downloads" },
   { label: "ABOUT", href: "/#about" },

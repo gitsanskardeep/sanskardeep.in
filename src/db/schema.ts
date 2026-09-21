@@ -138,10 +138,22 @@ export interface TestRecord {
   title: string;
   duration_minutes: number;
   total_marks: number;
-  test_type: 'mcq_online' | 'printable_pdf' | 'board_model';
-  pdf_r2_key: string | null;
+  test_type: string;
+  pdf_r2_key?: string | null;
+  external_url: string | null;
+  download_url: string | null;
+  thumbnail_url: string | null;
+  description: string | null;
+  chapter: string | null;
+  medium: string;
+  difficulty: string;
   status: 'draft' | 'published';
+  display_order: number;
   created_at: string;
+  updated_at?: string;
+  // Joined relational properties for UI display
+  className?: string;
+  subjectName?: string;
 }
 
 export interface QuestionRecord {

@@ -1,0 +1,214 @@
+---
+export const prerender = false; // Admin SSR route
+
+import Layout from '../../../layouts/Layout.astro';
+import { 
+  createTest, 
+  getClasses, 
+  getSubjects,
+  getOrCreateSubject 
+} from '../../../lib/tests';
+import TestForm from '../../../components/admin/TestForm.astro';
+import { getAdminSession, SESSION_COOKIE_NAME } from '../../../lib/auth';
+import type { SessionUser } from '../../../lib/auth';
+
+// Cloudflare v14 bindings
+let db: import('@cloudflare/workers-types').D1Database | undefined;
+let sessionKV: import('@cloudflare/workers-types').KVNamespace | undefined;
+try {
+  const { env } = await import('cloudflare:workers');
+  db = (env as Record<string, unknown>).DB as import('@cloudflare/workers-types').D1Database | undefined;
+  sessionKV = (env as Record<string, unknown>).SESSION as import('@cloudflare/workers-types').KVNamespace | undefined;
+} catch {
+  db = undefined;
+  sessionKV = undefined;
+}
+
+// Session verification
+const sessionToken = Astro.cookies.get(SESSION_COOKIE_NAME)?.value;
+let currentUser: SessionUser | null = Astro.locals.user || null;
+
+if (!currentUser && sessionToken && sessionKV) {
+  currentUser = await getAdminSession(sessionKV, sessionToken);
+}
+
+if (!currentUser) {
+  return Astro.redirect('/admin/login?err=' + encodeURIComponent('Please sign in to access the Tests Manager.'));
+}
+
+let formError = '';
+
+// Handle Create Form Submission (POST)
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get('_action')?.toString();
+
+    if (!db) {
+      formError = 'Database connection is currently unavailable.';
+    } else if (action === 'create') {
+      const title = formData.get('title')?.toString().trim() || '';
+      const class_id = parseInt(formData.get('class_id')?.toString() || '0', 10) || null;
+      const subject_name = formData.get('subject_name')?.toString().trim() || '';
+      const chapter = formData.get('chapter')?.toString().trim() || null;
+      const test_type = formData.get('test_type')?.toString().trim() || 'Question Paper';
+      const medium = formData.get('medium')?.toString().trim() || 'Gujarati';
+      const difficulty = formData.get('difficulty')?.toString().trim() || 'Medium';
+      const description = formData.get('description')?.toString().trim() || null;
+      const total_marks = parseInt(formData.get('total_marks')?.toString() || '50', 10);
+      const duration_minutes = parseInt(formData.get('duration_minutes')?.toString() || '60', 10);
+      const external_url = formData.get('external_url')?.toString().trim() || null;
+      const download_url = formData.get('download_url')?.toString().trim() || null;
+      const thumbnail_url = formData.get('thumbnail_url')?.toString().trim() || null;
+      const status = (formData.get('status')?.toString() === 'draft') ? 'draft' : 'published';
+      const display_order = parseInt(formData.get('display_order')?.toString() || '0', 10) || 0;
+
+      if (!title) {
+        formError = 'Test title is required.';
+      } else if (!class_id) {
+        formError = 'Standard / Class selection is required.';
+      } else if (isNaN(total_marks) || total_marks <= 0) {
+        formError = 'Total marks must be a valid positive number.';
+      } else if (isNaN(duration_minutes) || duration_minutes <= 0) {
+        formError = 'Duration must be a valid positive number in minutes.';
+      } else if (status === 'published' && !external_url) {
+        formError = 'A valid External PDF URL is required to publish a test paper. (You can save as Draft without a URL.)';
+      } else {
+        let subject_id: number | null = null;
+        if (subject_name) {
+          subject_id = await getOrCreateSubject(db, subject_name, class_id);
+        }
+
+        const ok = await createTest(db, {
+          title,
+          class_id,
+          subject_id,
+          chapter,
+          duration_minutes,
+          total_marks,
+          test_type,
+          medium,
+          difficulty,
+          description,
+          external_url,
+          download_url,
+          thumbnail_url,
+          status,
+          display_order
+        });
+
+        if (ok) {
+          return Astro.redirect('/admin/tests?msg=' + encodeURIComponent(`Test paper "${title}" was created successfully!`));
+        } else {
+          formError = 'Failed to insert test paper into D1 database.';
+        }
+      }
+    }
+  } catch (err: any) {
+    formError = err?.message || 'An unexpected error occurred.';
+  }
+}
+
+// Fetch dropdown options
+const classesList = await getClasses(db);
+const subjectsList = await getSubjects(db);
+---
+
+<Layout title="Add New Test Paper - Admin - Sanskar Deep" description="Create a new GSEB practice test or unit test paper record.">
+  <div class="admin-page">
+    <div class="container">
+      <div class="form-page-header">
+        <a href="/admin/tests" class="back-link">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          <span>Back to Tests & Practice Manager</span>
+        </a>
+        <h1 class="page-title">Add New Test Paper</h1>
+        <p class="page-desc">Enter test parameters, syllabus details, and link to the external PDF paper (e.g. Google Drive).</p>
+      </div>
+
+      {formError && (
+        <div class="alert alert-error">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>{formError}</span>
+        </div>
+      )}
+
+      <div class="form-container-card">
+        <TestForm 
+          classesList={classesList}
+          subjectsList={subjectsList}
+          cancelUrl="/admin/tests"
+        />
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .admin-page {
+    padding: 2.5rem 0 4rem;
+    background-color: #f8fafc;
+    min-height: calc(100vh - 80px);
+  }
+
+  .form-page-header {
+    margin-bottom: 2rem;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-primary-blue);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    margin-bottom: 0.75rem;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+
+  .page-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--color-primary-navy);
+    margin: 0 0 0.35rem;
+  }
+
+  .page-desc {
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .alert {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.25rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .alert-error {
+    background-color: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+
+  .form-container-card {
+    background: transparent;
+    max-width: 900px;
+  }
+</style>
