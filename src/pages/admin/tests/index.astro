@@ -239,6 +239,11 @@ const draftCount = adminTests.filter(t => t.status === 'draft').length;
                   </td>
                   <td>
                     <div class="action-buttons">
+                      {item.test_type === 'Section-A Question Test' && (
+                        <a href={`/admin/tests/${item.id}/questions`} class="btn btn-sm btn-primary action-questions" title="Manage Section-A Questions">
+                          Questions
+                        </a>
+                      )}
                       <a href={`/admin/tests/edit/${item.id}`} class="btn btn-sm btn-outline action-edit">
                         Edit
                       </a>

@@ -19,7 +19,7 @@ try {
 
 // Build filter options dynamically from live data
 const classOptions = [...new Set(testsList.map(t => t.className).filter(Boolean))] as string[];
-const typeOptions = [...new Set(testsList.map(t => t.test_type).filter(Boolean))] as string[];
+const typeOptions  = [...new Set(testsList.map(t => t.test_type).filter(Boolean))] as string[];
 
 const title = `Tests & Practice Papers | ${SITE_INFO.name}`;
 const description = `Free GSEB unit test papers, board model question papers, chapter quizzes, MCQ practice sets, and revision tests for Std 9, 10, 11, and 12 Gujarat Board students.`;
@@ -27,131 +27,142 @@ const description = `Free GSEB unit test papers, board model question papers, ch
 
 <Layout title={title} description={description}>
   <!-- Page Hero -->
-  <section class="tests-hero">
+  <section class="tp-hero">
     <div class="container">
-      <div class="hero-content">
-        <span class="hero-badge">GSEB Std 9–12 • Practice & Evaluate • ટેસ્ટ શ્રેણી</span>
-        <h1 class="hero-title">Tests & Practice Papers</h1>
-        <p class="hero-subtitle gujarati-text">"{SITE_INFO.taglineGujarati}"</p>
-        <p class="hero-desc">
+      <div class="tp-hero-inner">
+        <span class="tp-hero-badge">GSEB Std 9–12 • Practice &amp; Evaluate • ટેસ્ટ શ્રેણી</span>
+        <h1 class="tp-hero-title">Tests &amp; Practice Papers</h1>
+        <p class="tp-hero-gujarati gujarati-text">"{SITE_INFO.taglineGujarati}"</p>
+        <p class="tp-hero-desc">
           Unit test papers, chapter quizzes, MCQ practice sets, and full 100-mark Gujarat Board model exam papers — all free.
         </p>
       </div>
     </div>
   </section>
 
-  <!-- Main Directory Section -->
+  <!-- Main Section -->
   <section class="section">
     <div class="container">
-      <!-- Filters Bar -->
-      {testsList.length > 0 && (
-        <div class="filters-bar">
-          <!-- Standard pills -->
-          <div class="filter-group">
-            <span class="filter-label">Standard:</span>
-            <div class="filter-pills" id="classFilterPills">
-              <button class="pill active" data-filter-class="all">All Classes</button>
-              {classOptions.map(cls => (
-                <button class="pill" data-filter-class={cls.toLowerCase()}>{cls}</button>
-              ))}
-            </div>
-          </div>
 
-          <!-- Type pills -->
-          {typeOptions.length > 1 && (
-            <div class="filter-group">
-              <span class="filter-label">Type:</span>
-              <div class="filter-pills" id="typeFilterPills">
-                <button class="pill active" data-filter-type="all">All Types</button>
-                {typeOptions.map(t => (
-                  <button class="pill" data-filter-type={t.toLowerCase()}>{t}</button>
+      <!-- Filters (only when tests exist) -->
+      {testsList.length > 0 && (
+        <div class="tp-filters" role="search" aria-label="Filter tests">
+          <div class="tp-filter-rows">
+            <!-- Standard filter -->
+            <div class="tp-filter-row">
+              <span class="tp-filter-label" id="class-filter-label">Standard</span>
+              <div class="tp-pills" id="classFilterPills" role="group" aria-labelledby="class-filter-label">
+                <button class="tp-pill active" data-filter-class="all">All</button>
+                {classOptions.map(cls => (
+                  <button class="tp-pill" data-filter-class={cls.toLowerCase()}>{cls}</button>
                 ))}
               </div>
             </div>
-          )}
+
+            <!-- Test type filter (only when multiple types) -->
+            {typeOptions.length > 1 && (
+              <div class="tp-filter-row">
+                <span class="tp-filter-label" id="type-filter-label">Type</span>
+                <div class="tp-pills" id="typeFilterPills" role="group" aria-labelledby="type-filter-label">
+                  <button class="tp-pill active" data-filter-type="all">All Types</button>
+                  {typeOptions.map(t => (
+                    <button class="tp-pill" data-filter-type={t.toLowerCase()}>{t}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           <!-- Search -->
-          <div class="search-box">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+          <div class="tp-search">
+            <label for="searchInput" class="sr-only">Search tests</label>
+            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tp-search-icon" aria-hidden="true">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" id="searchInput" placeholder="Search by title, subject, chapter..." class="search-input" />
+            <input
+              type="search"
+              id="searchInput"
+              placeholder="Search title, subject, chapter…"
+              class="tp-search-input"
+              autocomplete="off"
+            />
           </div>
         </div>
       )}
 
-      <!-- Tests Grid -->
-      <div class="grid-2" id="testsGrid">
-        {testsList.map(item => (
-          <div
-            class="test-item-wrapper"
-            data-class={(item.className || '').toLowerCase()}
-            data-type={(item.test_type || '').toLowerCase()}
-            data-title={item.title.toLowerCase()}
-            data-subject={(item.subjectName || '').toLowerCase()}
-            data-chapter={(item.chapter || '').toLowerCase()}
-          >
-            <TestCard test={item} />
-          </div>
-        ))}
-      </div>
-
-      {testsList.length === 0 && (
-        <div class="empty-state card">
-          <div class="empty-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Test Cards Grid -->
+      {testsList.length > 0 ? (
+        <div class="grid-2 tp-grid" id="testsGrid">
+          {testsList.map(item => (
+            <div
+              class="test-item-wrapper"
+              data-class={(item.className || '').toLowerCase()}
+              data-type={(item.test_type || '').toLowerCase()}
+              data-title={item.title.toLowerCase()}
+              data-subject={(item.subjectName || '').toLowerCase()}
+              data-chapter={(item.chapter || '').toLowerCase()}
+            >
+              <TestCard test={item} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div class="tp-empty">
+          <div class="tp-empty-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
             </svg>
           </div>
-          <h3>No Tests Available Yet</h3>
-          <p>New test papers and practice materials will be added soon.</p>
+          <h2 class="tp-empty-title">No Tests Available Yet</h2>
+          <p class="tp-empty-desc">New test papers and practice materials will be added soon.</p>
         </div>
       )}
 
-      <div id="noFilterResults" class="empty-state card" style="display: none;">
-        <h3>No tests match your filters</h3>
-        <p>Try selecting a different class, test type, or clearing the search box.</p>
+      <!-- No-results message (shown by JS when filters produce zero results) -->
+      <div id="noFilterResults" class="tp-empty tp-no-results" style="display: none;" aria-live="polite">
+        <p class="tp-empty-title" style="font-size: 1.1rem;">No matching tests</p>
+        <p class="tp-empty-desc">Try a different standard, type, or clear the search.</p>
       </div>
+
     </div>
   </section>
 </Layout>
 
 <script>
   function setupFilters() {
-    const classPills = document.querySelectorAll<HTMLButtonElement>('[data-filter-class]');
-    const typePills = document.querySelectorAll<HTMLButtonElement>('[data-filter-type]');
+    const classPills  = document.querySelectorAll<HTMLButtonElement>('[data-filter-class]');
+    const typePills   = document.querySelectorAll<HTMLButtonElement>('[data-filter-type]');
     const searchInput = document.getElementById('searchInput') as HTMLInputElement | null;
-    const wrappers = document.querySelectorAll<HTMLElement>('.test-item-wrapper');
-    const noResults = document.getElementById('noFilterResults');
+    const wrappers    = document.querySelectorAll<HTMLElement>('.test-item-wrapper');
+    const noResults   = document.getElementById('noFilterResults');
 
     let activeClass = 'all';
-    let activeType = 'all';
+    let activeType  = 'all';
     let searchQuery = '';
 
     function applyFilters() {
       let visible = 0;
       wrappers.forEach(el => {
-        const cls = el.getAttribute('data-class') || '';
-        const type = el.getAttribute('data-type') || '';
-        const title = el.getAttribute('data-title') || '';
+        const cls     = el.getAttribute('data-class')   || '';
+        const type    = el.getAttribute('data-type')    || '';
+        const title   = el.getAttribute('data-title')   || '';
         const subject = el.getAttribute('data-subject') || '';
         const chapter = el.getAttribute('data-chapter') || '';
 
-        const matchClass = activeClass === 'all' || cls.includes(activeClass);
-        const matchType = activeType === 'all' || type.includes(activeType);
-        const matchSearch = !searchQuery || 
-          title.includes(searchQuery) || 
-          subject.includes(searchQuery) || 
+        const matchClass  = activeClass === 'all' || cls.includes(activeClass);
+        const matchType   = activeType  === 'all' || type.includes(activeType);
+        const matchSearch = !searchQuery ||
+          title.includes(searchQuery)   ||
+          subject.includes(searchQuery) ||
           chapter.includes(searchQuery);
 
-        if (matchClass && matchType && matchSearch) {
-          el.style.display = '';
-          visible++;
-        } else {
-          el.style.display = 'none';
-        }
+        const show = matchClass && matchType && matchSearch;
+        el.style.display = show ? '' : 'none';
+        if (show) visible++;
       });
 
       if (noResults) {
@@ -188,150 +199,196 @@ const description = `Free GSEB unit test papers, board model question papers, ch
 </script>
 
 <style>
-  .tests-hero {
-    background: linear-gradient(180deg, var(--color-primary-navy) 0%, #173859 100%);
+  /* ─────────────────────────────────────────
+     Hero
+  ───────────────────────────────────────── */
+  .tp-hero {
+    background-color: var(--color-primary-navy);
     color: #ffffff;
-    padding: 3.5rem 0 4rem;
+    padding: 3.25rem 0 3.75rem;
     border-bottom: 3px solid var(--color-accent-gold);
     text-align: center;
   }
 
-  .hero-content {
-    max-width: 780px;
+  .tp-hero-inner {
+    max-width: 720px;
     margin: 0 auto;
   }
 
-  .hero-badge {
+  .tp-hero-badge {
     display: inline-block;
-    background-color: rgba(217, 119, 6, 0.25);
+    background-color: rgba(217, 119, 6, 0.22);
     color: #fcd34d;
-    padding: 0.3rem 0.85rem;
+    padding: 0.28rem 0.85rem;
     border-radius: var(--radius-full);
-    font-size: 0.825rem;
+    font-size: 0.78rem;
     font-weight: 700;
+    letter-spacing: 0.03em;
     margin-bottom: 1rem;
-    border: 1px solid rgba(253, 230, 138, 0.3);
+    border: 1px solid rgba(253, 230, 138, 0.28);
   }
 
-  .hero-title {
-    font-size: 2.75rem;
+  .tp-hero-title {
+    font-size: 2.5rem;
     font-weight: 900;
     color: #ffffff;
     letter-spacing: -0.02em;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
+    line-height: 1.15;
   }
 
-  .hero-subtitle {
-    font-size: 1.1rem;
-    color: #fde68a;
-    margin-bottom: 1rem;
-    font-style: italic;
-  }
-
-  .hero-desc {
+  .tp-hero-gujarati {
     font-size: 1.05rem;
-    color: #cbd5e1;
-    max-width: 640px;
-    margin: 0 auto;
-    line-height: 1.65;
+    color: #fde68a;
+    font-style: italic;
+    margin-bottom: 0.9rem;
   }
 
-  /* Filters Bar */
-  .filters-bar {
+  .tp-hero-desc {
+    font-size: 1rem;
+    color: #cbd5e1;
+    line-height: 1.65;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* ─────────────────────────────────────────
+     Filters
+  ───────────────────────────────────────── */
+  .tp-filters {
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
-    margin-bottom: 2.5rem;
-    padding: 1.25rem 1.5rem;
-    background-color: #ffffff;
+    background-color: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 2rem;
   }
 
-  .filter-group {
+  .tp-filter-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .tp-filter-row {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 0.5rem;
   }
 
-  .filter-label {
-    font-size: 0.8rem;
+  .tp-filter-label {
+    font-size: 0.73rem;
     font-weight: 700;
     color: var(--color-text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     white-space: nowrap;
+    min-width: 56px;
   }
 
-  .filter-pills {
+  .tp-pills {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.35rem;
   }
 
-  .pill {
-    padding: 0.3rem 0.85rem;
-    font-size: 0.8rem;
+  .tp-pill {
+    padding: 0.28rem 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
-    border-radius: 9999px;
-    border: 1px solid var(--color-border);
-    background-color: #f8fafc;
+    border-radius: var(--radius-full);
+    border: 1.5px solid var(--color-border);
+    background-color: var(--color-bg-main);
     color: var(--color-text-medium);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.18s ease;
+    line-height: 1.4;
   }
 
-  .pill:hover {
+  .tp-pill:hover {
     border-color: var(--color-primary-blue);
     color: var(--color-primary-blue);
+    background-color: #eff6ff;
   }
 
-  .pill.active {
+  .tp-pill.active {
     background-color: var(--color-primary-navy);
     color: #ffffff;
     border-color: var(--color-primary-navy);
   }
 
-  .search-box {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.25rem;
+  .tp-pill:focus-visible {
+    outline: 3px solid var(--color-accent-gold);
+    outline-offset: 2px;
   }
 
-  .search-icon {
+  /* Search */
+  .tp-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .tp-search-icon {
+    position: absolute;
+    left: 0.75rem;
     color: var(--color-text-muted);
+    pointer-events: none;
     flex-shrink: 0;
   }
 
-  .search-input {
-    flex: 1;
-    max-width: 420px;
-    padding: 0.5rem 0.85rem;
+  .tp-search-input {
+    width: 100%;
+    max-width: 400px;
+    padding: 0.5rem 0.85rem 0.5rem 2.35rem;
     font-size: 0.875rem;
-    border: 1px solid var(--color-border);
+    border: 1.5px solid var(--color-border);
     border-radius: var(--radius-sm);
-    background-color: #ffffff;
+    background-color: var(--color-bg-main);
     color: var(--color-text-dark);
-    transition: border-color 0.2s ease;
+    font-family: inherit;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
   }
 
-  .search-input:focus {
+  .tp-search-input:focus {
     outline: none;
     border-color: var(--color-primary-blue);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    background-color: var(--color-surface);
   }
 
-  /* Empty State */
-  .empty-state {
+  /* ─────────────────────────────────────────
+     Grid spacing tweak
+  ───────────────────────────────────────── */
+  .tp-grid {
+    align-items: stretch;
+  }
+
+  .test-item-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .test-item-wrapper > * {
+    flex: 1;
+  }
+
+  /* ─────────────────────────────────────────
+     Empty / No Results
+  ───────────────────────────────────────── */
+  .tp-empty {
     text-align: center;
-    padding: 4rem 1rem;
-    color: var(--color-text-muted);
+    padding: 4rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
   }
 
-  .empty-icon {
-    margin: 0 auto 1.5rem;
+  .tp-empty-icon {
     width: 72px;
     height: 72px;
     background-color: #f1f5f9;
@@ -340,26 +397,75 @@ const description = `Free GSEB unit test papers, board model question papers, ch
     align-items: center;
     justify-content: center;
     color: #94a3b8;
+    margin-bottom: 0.25rem;
+    flex-shrink: 0;
   }
 
-  .empty-state h3 {
-    font-size: 1.2rem;
+  .tp-empty-title {
+    font-size: 1.25rem;
     font-weight: 700;
-    color: var(--color-text-dark);
-    margin-bottom: 0.5rem;
+    color: var(--color-primary-navy);
+    margin: 0;
   }
 
+  .tp-empty-desc {
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    max-width: 380px;
+  }
+
+  .tp-no-results {
+    padding: 2.5rem 1rem;
+  }
+
+  /* ─────────────────────────────────────────
+     Screen reader only utility
+  ───────────────────────────────────────── */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* ─────────────────────────────────────────
+     Responsive
+  ───────────────────────────────────────── */
   @media (max-width: 768px) {
-    .hero-title {
-      font-size: 1.9rem;
+    .tp-hero-title {
+      font-size: 1.85rem;
     }
-    .filter-group {
+
+    .tp-filter-row {
       flex-direction: column;
       align-items: flex-start;
     }
-    .search-input {
+
+    .tp-filter-label {
+      min-width: unset;
+    }
+
+    .tp-search-input {
       max-width: 100%;
-      width: 100%;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .tp-hero {
+      padding: 2.5rem 0 3rem;
+    }
+
+    .tp-hero-title {
+      font-size: 1.6rem;
+    }
+
+    .tp-filters {
+      padding: 1rem;
     }
   }
 </style>

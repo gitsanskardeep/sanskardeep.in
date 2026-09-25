@@ -156,6 +156,19 @@ export interface TestRecord {
   subjectName?: string;
 }
 
+export type SectionAQuestionType =
+  | 'mcq'
+  | 'fill_blank'
+  | 'fill_blank_options'
+  | 'true_false'
+  | 'one_word'
+  | 'one_line';
+
+export type SectionAQuestionSource =
+  | 'text'
+  | 'image'
+  | 'text_image';
+
 export interface QuestionRecord {
   id: number;
   test_id: number;
@@ -170,4 +183,12 @@ export interface QuestionRecord {
   marks: number;
   explanation: string | null;
   created_at: string;
+  // Phase 1: Section-A additions
+  question_type?: SectionAQuestionType;
+  question_source?: SectionAQuestionSource;
+  image_data?: string | null;
+  image_alt_text?: string | null;
+  correct_answer_text?: string | null;
+  display_order?: number;
+  updated_at?: string;
 }

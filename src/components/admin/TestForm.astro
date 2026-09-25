@@ -101,11 +101,14 @@ const isEdit = Boolean(editItem && editItem.id);
       <div class="form-group">
         <label for="test_type">Test Type *</label>
         <select id="test_type" name="test_type" required class="form-control">
-          {TEST_TYPES.map(t => (
+          {TEST_TYPES.filter(t => t !== 'Section-A Question Test').map(t => (
             <option value={t} selected={editItem ? editItem.test_type === t : t === 'Question Paper'}>
               {t}
             </option>
           ))}
+          <option value="section_a" selected={editItem ? (editItem.test_type === 'section_a' || editItem.test_type === 'Section-A Question Test') : false}>
+            Section-A Question Test
+          </option>
         </select>
       </div>
 
@@ -210,7 +213,7 @@ const isEdit = Boolean(editItem && editItem.id);
         class="form-control" 
       />
       <span class="field-hint">
-        Paste full public view/share link from Google Drive or OneDrive. (Required to publish test; optional for drafts.)
+        Paste full public view/share link from Google Drive or OneDrive. (Required for printable PDF tests; optional for Section-A Question Tests and drafts.)
       </span>
     </div>
 

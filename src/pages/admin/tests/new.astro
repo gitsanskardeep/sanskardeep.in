@@ -71,8 +71,8 @@ if (Astro.request.method === 'POST') {
         formError = 'Total marks must be a valid positive number.';
       } else if (isNaN(duration_minutes) || duration_minutes <= 0) {
         formError = 'Duration must be a valid positive number in minutes.';
-      } else if (status === 'published' && !external_url) {
-        formError = 'A valid External PDF URL is required to publish a test paper. (You can save as Draft without a URL.)';
+      } else if (status === 'published' && test_type !== 'Section-A Question Test' && !external_url) {
+        formError = 'A valid External PDF URL is required to publish a printable test paper. (You can save as Draft without a URL.)';
       } else {
         let subject_id: number | null = null;
         if (subject_name) {
