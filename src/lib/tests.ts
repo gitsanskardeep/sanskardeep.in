@@ -1,5 +1,4 @@
 import type { TestRecord } from '../db/schema';
-import { TESTS_DATA, CLASSES_DATA } from '../data/portalData';
 
 type D1Database = import('@cloudflare/workers-types').D1Database;
 
@@ -61,40 +60,8 @@ export interface SubjectOption {
 }
 
 /**
- * Fallback mapping from portalData.ts static data if D1 is unavailable.
- */
-function getStaticTestsFallback(): TestRecord[] {
-  return TESTS_DATA.map((item, index) => {
-    const classMatch = CLASSES_DATA.find(c => c.standard.includes(item.standard)) || CLASSES_DATA[0];
-    return {
-      id: index + 1,
-      class_id: null,
-      subject_id: null,
-      title: item.title,
-      duration_minutes: parseInt(item.duration.replace(/[^0-9]/g, '')) || 60,
-      total_marks: item.totalMarks || 50,
-      test_type: item.type || 'Question Paper',
-      pdf_r2_key: null,
-      external_url: 'https://drive.google.com',
-      download_url: null,
-      thumbnail_url: null,
-      description: `Official GSEB practice test paper for ${item.standard} ${item.subject}.`,
-      chapter: 'Unit Test / Blueprint',
-      medium: 'Gujarati',
-      difficulty: 'Board Standard',
-      status: 'published',
-      display_order: index + 1,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      className: item.standard,
-      subjectName: item.subject
-    };
-  });
-}
-
-/**
  * Fetches published tests from D1 database.
- * Fallbacks to portalData.ts static data if D1 is unavailable.
+ * Returns empty array if no tests are published or if database is unavailable.
  */
 export async function getPublishedTests(db?: D1Database): Promise<TestRecord[]> {
   if (db) {
@@ -111,15 +78,15 @@ export async function getPublishedTests(db?: D1Database): Promise<TestRecord[]> 
         ORDER BY t.display_order ASC, t.id DESC
       `).all<TestRecord>();
 
-      if (results && results.length > 0) {
+      if (results) {
         return results;
       }
     } catch (e) {
-      console.warn('D1 published tests query warning, falling back to static data:', e);
+      console.warn('D1 published tests query warning:', e);
     }
   }
 
-  return getStaticTestsFallback();
+  return [];
 }
 
 /**
@@ -147,7 +114,7 @@ export async function getAllAdminTests(db?: D1Database): Promise<TestRecord[]> {
     }
   }
 
-  return getPublishedTests(db);
+  return [];
 }
 
 /**

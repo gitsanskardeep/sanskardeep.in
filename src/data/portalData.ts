@@ -18,15 +18,6 @@ export interface MaterialCategory {
   itemCount: number;
 }
 
-export interface TestItem {
-  id: string;
-  title: string;
-  standard: string;
-  subject: string;
-  totalMarks: number;
-  duration: string;
-  type: string;
-}
 
 export interface BlogPost {
   id: string;
@@ -187,44 +178,6 @@ export const MATERIAL_CATEGORIES: MaterialCategory[] = [
   }
 ];
 
-export const TESTS_DATA: TestItem[] = [
-  {
-    id: "t1",
-    title: "Std 10 Maths Basic & Standard - Chapter 1 to 5 Unit Test",
-    standard: "Std 10",
-    subject: "Mathematics",
-    totalMarks: 50,
-    duration: "1 Hr 30 Mins",
-    type: "Offline/Printable Test"
-  },
-  {
-    id: "t2",
-    title: "Std 12 Commerce Accountancy Part-1 Full Chapter Practice Set",
-    standard: "Std 12 Commerce",
-    subject: "Accounts",
-    totalMarks: 100,
-    duration: "3 Hours",
-    type: "Board Model Test"
-  },
-  {
-    id: "t3",
-    title: "Std 10 Science - Chemical Reactions & Equations Quiz",
-    standard: "Std 10",
-    subject: "Science",
-    totalMarks: 25,
-    duration: "30 Mins",
-    type: "Online MCQ Quiz"
-  },
-  {
-    id: "t4",
-    title: "Std 12 Science Physics Chapter-Wise Numericals & Formula Quiz",
-    standard: "Std 12 Science",
-    subject: "Physics",
-    totalMarks: 40,
-    duration: "45 Mins",
-    type: "Practice Test"
-  }
-];
 
 export const BLOG_POSTS: BlogPost[] = [
   {

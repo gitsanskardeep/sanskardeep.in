@@ -1,11 +1,9 @@
 ---
-import { TESTS_DATA } from '../data/portalData';
 import { getPublishedTests } from '../lib/tests';
 import type { TestRecord } from '../db/schema';
 
-// Fetch live tests from D1 when available; fall back to static data
+// Fetch live tests from D1
 let liveTests: TestRecord[] = [];
-let usingLiveData = false;
 try {
   const { env } = await import('cloudflare:workers');
   const db = (env as Record<string, unknown>).DB as import('@cloudflare/workers-types').D1Database | undefined;
@@ -13,15 +11,11 @@ try {
     const results = await getPublishedTests(db);
     if (results && results.length > 0) {
       liveTests = results.slice(0, 4);
-      usingLiveData = true;
     }
   }
 } catch {
-  // Local dev or missing binding — will fall through to static fallback
+  // Local dev or missing binding
 }
-
-// Static fallback from portalData.ts
-const displayTests = usingLiveData ? liveTests : TESTS_DATA.slice(0, 4);
 ---
 
 <section class="section" id="tests">
@@ -34,10 +28,9 @@ const displayTests = usingLiveData ? liveTests : TESTS_DATA.slice(0, 4);
       </p>
     </div>
 
-    <div class="grid-2">
-      {usingLiveData ? (
-        // Live D1 data: use full TestRecord fields
-        liveTests.map(test => (
+    {liveTests.length > 0 ? (
+      <div class="grid-2">
+        {liveTests.map(test => (
           <div class="card test-card">
             <div class="test-header">
               {test.className && <span class="badge badge-accent">{test.className}</span>}
@@ -89,59 +82,26 @@ const displayTests = usingLiveData ? liveTests : TESTS_DATA.slice(0, 4);
               )}
             </div>
           </div>
-        ))
-      ) : (
-        // Static fallback from portalData.ts
-        TESTS_DATA.slice(0, 4).map(test => (
-          <div class="card test-card">
-            <div class="test-header">
-              <span class="badge badge-accent">{test.standard}</span>
-              <span class="badge badge-primary">{test.type}</span>
-            </div>
-
-            <h3 class="test-title">{test.title}</h3>
-
-            <div class="test-meta">
-              <div class="meta-item">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-                <span>Subject: <strong>{test.subject}</strong></span>
-              </div>
-              <div class="meta-item">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                <span>Duration: <strong>{test.duration}</strong></span>
-              </div>
-              <div class="meta-item">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="8" r="7"></circle>
-                  <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-                </svg>
-                <span>Total Marks: <strong>{test.totalMarks}</strong></span>
-              </div>
-            </div>
-
-            <div class="test-actions">
-              <a href="/tests" class="btn btn-sm btn-primary">
-                <span>Explore Test Papers</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-              </a>
-            </div>
-          </div>
-        ))
-      )}
-    </div>
+        ))}
+      </div>
+    ) : (
+      <div class="card empty-test-box">
+        <div class="empty-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <h3 class="empty-title">No Tests Available Yet</h3>
+        <p class="empty-desc">
+          New Gujarat Board practice test papers, unit tests, and model question sets will be added soon.
+        </p>
+        <a href="/tests" class="btn btn-sm btn-outline">Visit Tests & Practice Directory &rarr;</a>
+      </div>
+    )}
 
     <!-- Practice Banner -->
     <div class="test-banner">
@@ -199,6 +159,46 @@ const displayTests = usingLiveData ? liveTests : TESTS_DATA.slice(0, 4);
 
   .test-actions {
     margin-top: auto;
+  }
+
+  /* Empty state for home section */
+  .empty-test-box {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    background-color: var(--color-surface);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .empty-icon {
+    width: 60px;
+    height: 60px;
+    background-color: #f1f5f9;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    margin-bottom: 0.25rem;
+  }
+
+  .empty-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--color-primary-navy);
+    margin: 0;
+  }
+
+  .empty-desc {
+    font-size: 0.925rem;
+    color: var(--color-text-muted);
+    max-width: 460px;
+    margin: 0 auto;
+    line-height: 1.5;
   }
 
   .test-banner {
